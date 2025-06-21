@@ -45,6 +45,23 @@ GEMINI_API_KEYS = [
     "AIzaSyB-nCEOtnA_YfFSJzgkYj7uypTFZ5VvriM",
 ]
 
+# Sticker pack names from your links
+STICKER_PACK_NAMES = [
+    "sticker_pack_849e2a467e5f458e9124eeda5ebea3c6_by_ShrutixMusicBot",
+    "sticker_pack_18701a70b8c74752b39b15270f5115aa_by_ShrutixMusicBot", 
+    "sticker_pack_b744dd6c707c4afea2c6444eea7f362e_by_ShrutixMusicBot",
+    "sticker_pack_f22ae05e7e3a4f7881c09bdcb2d2737e_by_ShrutixMusicBot",
+    "sticker_pack_f0c7b3a200bc46849327713419656348_by_ShrutixMusicBot",
+    "sticker_pack_49b35efd495c49269b0036f696fca264_by_ShrutixMusicBot",
+    "sticker_pack_44855cad12144576b051fc0d865b54c7_by_ShrutixMusicBot",
+    "sticker_pack_c897a42c59a94b3f868c63a6610143ea_by_ShrutixMusicBot",
+    "sticker_pack_20e654862ed94a3d93576566bc0e5531_by_ShrutixMusicBot",
+    "sticker_pack_8338808403e3464eacec0d7227157066_by_ShrutixMusicBot"
+]
+
+# Store collected sticker IDs globally
+COLLECTED_STICKERS = []
+
 class HybridChatBot:
     EMOJIS = ["😊", "😂", "❤️", "🔥", "😎", "😘", "💖", "🥰", "😉", "🌟", "👍", "✨", "😜", "🤗", "😇"]
 
@@ -168,8 +185,49 @@ class HybridChatBot:
             except:
                 return random.choice(["Samjh nahi aya", "Kya kaha?", "Phir se bolo", "Thoda ruko"])
 
+    async def collect_stickers_from_packs(self, client: Client):
+        """Collect sticker IDs from sticker packs"""
+        global COLLECTED_STICKERS
+        try:
+            for pack_name in STICKER_PACK_NAMES:
+                try:
+                    sticker_set = await client.get_sticker_set(pack_name)
+                    for sticker in sticker_set.stickers:
+                        COLLECTED_STICKERS.append(sticker.file_id)
+                    print(f"Collected {len(sticker_set.stickers)} stickers from {pack_name}")
+                except Exception as e:
+                    print(f"Error collecting from {pack_name}: {e}")
+            
+            print(f"Total stickers collected: {len(COLLECTED_STICKERS)}")
+        except Exception as e:
+            print(f"Error in collect_stickers_from_packs: {e}")
+
+    def get_random_sticker(self) -> str:
+        """Get random sticker from collected stickers"""
+        global COLLECTED_STICKERS
+        if COLLECTED_STICKERS:
+            return random.choice(COLLECTED_STICKERS)
+        else:
+            # Fallback stickers if collection fails
+            fallback_stickers = [
+                "CAACAgIAAxkBAAEBhF9kPi7sB_7q3yPs_5U2g7wQhb2CgwACIwADKA9qFOKi2_dLpCGMHgQ",
+                "CAACAgIAAxkBAAEBhGFkPi7wJEiK6dLtKcY5gOgQhb2ChwACJAADKA9qFCPu2_dLpCGMHgQ"
+            ]
+            return random.choice(fallback_stickers)
+
 # Initialize hybrid chatbot
 hybrid_bot = HybridChatBot()
+
+# Add this function to initialize stickers when bot starts
+async def initialize_stickers():
+    """Initialize sticker collection from packs"""
+    try:
+        await hybrid_bot.collect_stickers_from_packs(ChatBot)
+    except Exception as e:
+        print(f"Error initializing stickers: {e}")
+
+# Call this when your bot starts (add this in your main bot startup code)
+# asyncio.create_task(initialize_stickers())
 
 # Database setup
 translator = GoogleTranslator()
@@ -224,23 +282,6 @@ async def save_reply(original_message: Message, reply_message: Message):
     except Exception as e:
         print(f"Error in save_reply: {e}")
 
-async def get_database_reply(word: str):
-    global replies_cache
-    if not replies_cache:
-        await load_replies_cache()
-        
-    # First try exact match for media only
-    exact_matches = [reply for reply in replies_cache if reply['word'] == word and reply['check'] != 'none']
-    if exact_matches:
-        return random.choice(exact_matches)
-    
-    # Then try partial match for media only
-    partial_matches = [reply for reply in replies_cache if word.lower() in reply['word'].lower() and reply['check'] != 'none']
-    if partial_matches:
-        return random.choice(partial_matches)
-        
-    return None
-
 async def get_chat_language(chat_id):
     chat_lang = await lang_db.find_one({"chat_id": chat_id})
     return chat_lang["language"] if chat_lang and "language" in chat_lang else None
@@ -288,91 +329,66 @@ async def hybrid_chatbot_response(client: Client, message: Message):
             else:
                 return await add_served_user(chat_id)
         
-        # Skip if no text message
-        if not message.text:
-            return
-        
         # Process only if replying to bot or direct message
         if (message.reply_to_message and message.reply_to_message.from_user.id == ChatBot.id) or not message.reply_to_message:
             
-            response_text = None
-            media_response = None
-            
-            # Check if user sent media (sticker, photo, video, etc.)
+            # Check if user sent media (sticker, photo, video, audio, animation, voice)
             if message.sticker or message.photo or message.video or message.audio or message.animation or message.voice:
-                # For media messages, use database response
-                db_reply = await get_database_reply(message.text or "media")
-                if db_reply and db_reply["check"] != "none":
-                    media_response = db_reply
-                else:
-                    # If no media response found, use AI text
-                    ai_reply = await hybrid_bot.get_ai_reply("Nice media")
-                    response_text = ai_reply
-            else:
-                # For text messages, use AI only
-                direct_reply = hybrid_bot.get_direct_reply(message.text)
-                if direct_reply:
-                    response_text = direct_reply
-                else:
-                    # Always use AI for text messages
-                    ai_reply = await hybrid_bot.get_ai_reply(message.text)
-                    response_text = ai_reply
-
-            # Handle language translation for text responses
-            if response_text:
-                chat_lang = await get_chat_language(chat_id)
-                if chat_lang and chat_lang != "nolang":
+                # For any media, send random sticker from predefined packs
+                try:
+                    random_sticker = hybrid_bot.get_random_sticker()
+                    await message.reply_sticker(random_sticker)
+                except Exception as e:
+                    print(f"Error sending sticker: {e}")
+                    # Fallback to AI text if sticker fails
                     try:
-                        translated_text = GoogleTranslator(source='auto', target=chat_lang).translate(response_text)
-                        if translated_text:
-                            response_text = translated_text
+                        ai_reply = await hybrid_bot.get_ai_reply("Nice")
+                        emoji = random.choice(hybrid_bot.EMOJIS)
+                        await message.reply_text(f"{ai_reply} {emoji}")
                     except:
-                        pass
+                        await message.reply_text("🙄")
+            
+            elif message.text:
+                # For text messages, use AI response
+                try:
+                    # Check for direct replies first
+                    direct_reply = hybrid_bot.get_direct_reply(message.text)
+                    if direct_reply:
+                        response_text = direct_reply
+                    else:
+                        # Use AI for all other text messages
+                        response_text = await hybrid_bot.get_ai_reply(message.text)
 
-            # Send response
-            if media_response:
-                # Send media response from database
-                try:
-                    if media_response["check"] == "sticker":
-                        await message.reply_sticker(media_response["text"])
-                    elif media_response["check"] == "photo":
-                        await message.reply_photo(media_response["text"])
-                    elif media_response["check"] == "video":
-                        await message.reply_video(media_response["text"])
-                    elif media_response["check"] == "audio":
-                        await message.reply_audio(media_response["text"])
-                    elif media_response["check"] == "gif":
-                        await message.reply_animation(media_response["text"])
-                    elif media_response["check"] == "voice":
-                        await message.reply_voice(media_response["text"])
-                except:
-                    # Fallback to AI text if media fails
-                    ai_reply = await hybrid_bot.get_ai_reply(message.text)
+                    # Handle language translation
+                    chat_lang = await get_chat_language(chat_id)
+                    if chat_lang and chat_lang != "nolang":
+                        try:
+                            translated_text = GoogleTranslator(source='auto', target=chat_lang).translate(response_text)
+                            if translated_text:
+                                response_text = translated_text
+                        except:
+                            pass
+
+                    # Send AI-generated text response with emoji
                     emoji = random.choice(hybrid_bot.EMOJIS)
-                    await message.reply_text(f"{ai_reply} {emoji}")
-            elif response_text:
-                # Send AI-generated text response with emoji
-                emoji = random.choice(hybrid_bot.EMOJIS)
-                final_text = f"{response_text} {emoji}"
-                try:
+                    final_text = f"{response_text} {emoji}"
                     await message.reply_text(final_text)
-                except:
-                    pass
-            else:
-                # Ultimate fallback - AI reply
-                try:
-                    fallback_reply = await hybrid_bot.get_ai_reply(message.text)
-                    emoji = random.choice(hybrid_bot.EMOJIS)
-                    await message.reply_text(f"{fallback_reply} {emoji}")
-                except:
-                    await message.reply_text("🙄🙄")
+                    
+                except Exception as e:
+                    print(f"Error in AI text response: {e}")
+                    try:
+                        fallback_reply = await hybrid_bot.get_ai_reply("Hello")
+                        emoji = random.choice(hybrid_bot.EMOJIS)
+                        await message.reply_text(f"{fallback_reply} {emoji}")
+                    except:
+                        await message.reply_text("🙄")
 
-        # Save user replies for learning (media responses only)
+        # Save user replies for learning
         if message.reply_to_message:
             await save_reply(message.reply_to_message, message)
 
     except MessageEmpty:
-        await message.reply_text("🙄🙄")
+        await message.reply_text("🙄")
     except Exception as e:
         print(f"Error in hybrid_chatbot_response: {e}")
         return
