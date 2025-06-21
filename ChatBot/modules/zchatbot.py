@@ -45,21 +45,38 @@ GEMINI_API_KEYS = [
     "AIzaSyB-nCEOtnA_YfFSJzgkYj7uypTFZ5VvriM",
 ]
 
-# Predefined sticker file IDs from your sticker packs
+# Updated sticker file IDs with your new ones
 STICKER_PACKS = [
-    # You need to replace these with actual sticker file IDs from your packs
-    # To get file IDs, send stickers to your bot and log message.sticker.file_id
-    "CAACAgIAAxUAAWYxyz9example1",  # Replace with actual file IDs
-    "CAACAgIAAxUAAWYxyz9example2",
-    "CAACAgIAAxUAAWYxyz9example3",
-    "CAACAgIAAxUAAWYxyz9example4",
-    "CAACAgIAAxUAAWYxyz9example5",
-    "CAACAgIAAxUAAWYxyz9example6",
-    "CAACAgIAAxUAAWYxyz9example7",
-    "CAACAgIAAxUAAWYxyz9example8",
-    "CAACAgIAAxUAAWYxyz9example9",
-    "CAACAgIAAxUAAWYxyz9example10",
-    # Add more sticker file IDs here from your packs
+    "CAACAgUAAxkBAAKPbWhWh_yGKkRJBJoiiEIG6_xgHa5gAAJyFwACtDMpVVkkTJ48Lz5KHgQ",
+    "CAACAgUAAxkBAAKPbmhWh_5fjK0F98ExmL3BxhTKNGMxAAJ8FAACWWLgVEV-ZekDpMkVHgQ",
+    "CAACAgUAAxkBAAKPb2hWiAABXBWHOZdRMPqQKGQy58CYagAC3RQAAqqdUVYrpT0Qq5oQoh4E",
+    "CAACAgUAAxkBAAKPcGhWiAIfhv--_Tkse63HQRqOF8G6AALMFgACjA4xVv7F1BrAK523HgQ",
+    "CAACAgUAAxkBAAKPcWhWiASHuSKZaB9BDaUi6IdoEvW-AAKXFgACTb-xVHPCYCAlehnhHgQ",
+    "CAACAgUAAxkBAAKPcmhWiAcIg4A673Yr1dMnUMCSjndcAAK5DgAC0i9oV2oj_2yKobByHgQ",
+    "CAACAgUAAxkBAAKPc2hWiBaGzwwVdArZ2FVYQxbJ8uMBAAJGFwACxImoVplBB1eChocrHgQ",
+    "CAACAgUAAxkBAAKPdGhWiBz1hdtzrqHiQzoQmRs1pL8IAALBEgACbcGwVrbrkS7PDhiGHgQ",
+    "CAACAgUAAxkBAAKPdWhWiCJK517UQpAqtzmHvRQ_SC7HAAIEGwAC1bEJVXOsI6HhQu68HgQ",
+    "CAACAgUAAxkBAAKPdmhWiCxLNs4HNqas8EYflNNfVWi0AAKlEwACGTjhVKAkI8UwyAoVHgQ",
+    "CAACAgUAAxkBAAKPd2hWiDRJ8GarO04SXeSweN-RU4inAAJ1FgACtk2xVHgvTfo1oCgKHgQ",
+    "CAACAgUAAxkBAAKPeGhWiDdkgE9c_q1D5UZ-9p7qhlmkAAJdEwACU-uxVFsuEtW6XeMCHgQ",
+    "CAACAgUAAxkBAAKPeWhWiD6XSwABrnmRCxqwgyUX1p-s7gACjhcAAnxWsVR1OAqc11cIZR4E",
+    "CAACAgUAAxkBAAKPemhWiEHh4ZmyeqaCExSchLVZQITnAAJ6FAAClV-xVMge7a4nIt4FHgQ",
+    "CAACAgUAAxkBAAKPm2hWiOOSX73X1_fvWCW91BnWtY_HAAJTFwACi9CwVFfwj93pSYW2HgQ",
+    "CAACAgUAAxkBAAKPnGhWiOcgIT0lEMl_0VxfUwuFN7svAAJ1FgACYWCwVBd3PlPcJwkNHgQ",
+    "CAACAgUAAxkBAAKPnWhWiO3eoKrDb8y97yZcW0Me2H6-AAJqEwACacawVMhPGwjYac__HgQ",
+    "CAACAgUAAxkBAAKPnmhWiO4U4o_TKPgNS5_vRhwibfjRAAJ7FwACmY2wVLASruiodCfyHgQ",
+    "CAACAgUAAxkBAAKPn2hWiPGXVrKF468xmNCnWPDjqz-kAAKuFAACAuSwVDfnt63P5XjAHgQ",
+    "CAACAgUAAxkBAAKPoGhWiPPPIk13rEeQgYXQV0la0RyxAALnGQACFG-wVDi4KpF4pWA1HgQ",
+    "CAACAgUAAxkBAAKPoWhWiPS23BZT0p_hgL2RUJQDgywtAAKrFQACya-xVMWUv1_ic5cBHgQ",
+    "CAACAgUAAxkBAAKPomhWiPW1xT7rJZ5ZYrDOwLp_vthAAAJBGAACLRSxVDxXrXR9n_RrHgQ",
+    "CAACAgUAAxkBAAKPo2hWiPUIiWUEI8UgKC2MduDXZhFLAAImFAACvk6xVJRv25R3syI2HgQ",
+    "CAACAgUAAxkBAAKPpGhWiPaECRkxahScy2cFuHZ7gzkAA3UTAALD8LBUy4RGOsnDjEUeBA",
+    "CAACAgUAAxkBAAKPpWhWiPerl_zzwaeVy6L0GNnPgVCIAAIXHQAC74iwVM8VIA9Az9ySHgQ",
+    "CAACAgUAAxkBAAKPpmhWiPgLN4zbsvm6omhTE0DyqcdNAAIJGAACDRSwVI_xzxGV173YHgQ",
+    "CAACAgUAAxkBAAKPp2hWiPmFDhZpuXo2RAuGemmHT2H7AALsGwACIHWxVKzjNjtQ8LXGHgQ",
+    "CAACAgUAAxkBAAKPqGhWiPvfE0mWy0R-pegX2qHZeLrPAAJiGQACkbawVIpOCFk3F-yhHgQ",
+    "CAACAgUAAxkBAAKPqWhWiPwOkCLC5uSx2Wa3TYOPn5hqAAKgFQACM0WwVExZM0c4TiZhHgQ",
+    "CAACAgUAAxkBAAKPqmhWiPxBB6uQLjuvjTYOxqGe9HsMAAIsFwACurawVJ_aZRIayzXCHgQ",
 ]
 
 class HybridChatBot:
