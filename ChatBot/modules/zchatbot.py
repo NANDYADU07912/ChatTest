@@ -97,8 +97,6 @@ class HybridChatBot:
 
     def get_direct_reply(self, message: str) -> str:
         """Only very specific direct replies, let AI handle most cases"""
-        if not message:
-            return None
         message_lower = message.lower().strip()
         
         # Only handle very exact matches to avoid overriding AI
@@ -288,10 +286,6 @@ async def hybrid_chatbot_response(client: Client, message: Message):
             else:
                 return await add_served_user(chat_id)
         
-        # Skip if no text message
-        if not message.text:
-            return
-        
         # Process only if replying to bot or direct message
         if (message.reply_to_message and message.reply_to_message.from_user.id == ChatBot.id) or not message.reply_to_message:
             
@@ -299,13 +293,14 @@ async def hybrid_chatbot_response(client: Client, message: Message):
             media_response = None
             
             # Step 1: Check database for media responses first
-            db_reply = await get_database_reply(message.text)
-            if db_reply and db_reply["check"] != "none":
-                # Media response from database (photos, videos, stickers, etc.)
-                media_response = db_reply
+            if message.text:
+                db_reply = await get_database_reply(message.text)
+                if db_reply and db_reply["check"] != "none":
+                    # Media response from database (photos, videos, stickers, etc.)
+                    media_response = db_reply
             
             # Step 2: If no media response, try direct reply (very limited)
-            if not media_response:
+            if not media_response and message.text:
                 direct_reply = hybrid_bot.get_direct_reply(message.text)
                 if direct_reply:
                     response_text = direct_reply
@@ -343,7 +338,7 @@ async def hybrid_chatbot_response(client: Client, message: Message):
                         await message.reply_voice(media_response["text"])
                 except:
                     # Fallback to AI text if media fails
-                    ai_reply = await hybrid_bot.get_ai_reply(message.text)
+                    ai_reply = await hybrid_bot.get_ai_reply(message.text or "")
                     emoji = random.choice(hybrid_bot.EMOJIS)
                     await message.reply_text(f"{ai_reply} {emoji}")
             elif response_text:
@@ -357,7 +352,7 @@ async def hybrid_chatbot_response(client: Client, message: Message):
             else:
                 # Ultimate fallback - AI reply
                 try:
-                    fallback_reply = await hybrid_bot.get_ai_reply(message.text)
+                    fallback_reply = await hybrid_bot.get_ai_reply(message.text or "")
                     emoji = random.choice(hybrid_bot.EMOJIS)
                     await message.reply_text(f"{fallback_reply} {emoji}")
                 except:
