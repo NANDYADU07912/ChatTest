@@ -45,22 +45,22 @@ GEMINI_API_KEYS = [
     "AIzaSyB-nCEOtnA_YfFSJzgkYj7uypTFZ5VvriM",
 ]
 
-# Sticker pack names from your links
-STICKER_PACK_NAMES = [
-    "sticker_pack_849e2a467e5f458e9124eeda5ebea3c6_by_ShrutixMusicBot",
-    "sticker_pack_18701a70b8c74752b39b15270f5115aa_by_ShrutixMusicBot", 
-    "sticker_pack_b744dd6c707c4afea2c6444eea7f362e_by_ShrutixMusicBot",
-    "sticker_pack_f22ae05e7e3a4f7881c09bdcb2d2737e_by_ShrutixMusicBot",
-    "sticker_pack_f0c7b3a200bc46849327713419656348_by_ShrutixMusicBot",
-    "sticker_pack_49b35efd495c49269b0036f696fca264_by_ShrutixMusicBot",
-    "sticker_pack_44855cad12144576b051fc0d865b54c7_by_ShrutixMusicBot",
-    "sticker_pack_c897a42c59a94b3f868c63a6610143ea_by_ShrutixMusicBot",
-    "sticker_pack_20e654862ed94a3d93576566bc0e5531_by_ShrutixMusicBot",
-    "sticker_pack_8338808403e3464eacec0d7227157066_by_ShrutixMusicBot"
+# Predefined sticker file IDs from your sticker packs
+STICKER_PACKS = [
+    # You need to replace these with actual sticker file IDs from your packs
+    # To get file IDs, send stickers to your bot and log message.sticker.file_id
+    "CAACAgIAAxUAAWYxyz9example1",  # Replace with actual file IDs
+    "CAACAgIAAxUAAWYxyz9example2",
+    "CAACAgIAAxUAAWYxyz9example3",
+    "CAACAgIAAxUAAWYxyz9example4",
+    "CAACAgIAAxUAAWYxyz9example5",
+    "CAACAgIAAxUAAWYxyz9example6",
+    "CAACAgIAAxUAAWYxyz9example7",
+    "CAACAgIAAxUAAWYxyz9example8",
+    "CAACAgIAAxUAAWYxyz9example9",
+    "CAACAgIAAxUAAWYxyz9example10",
+    # Add more sticker file IDs here from your packs
 ]
-
-# Store collected sticker IDs globally
-COLLECTED_STICKERS = []
 
 class HybridChatBot:
     EMOJIS = ["😊", "😂", "❤️", "🔥", "😎", "😘", "💖", "🥰", "😉", "🌟", "👍", "✨", "😜", "🤗", "😇"]
@@ -185,49 +185,12 @@ class HybridChatBot:
             except:
                 return random.choice(["Samjh nahi aya", "Kya kaha?", "Phir se bolo", "Thoda ruko"])
 
-    async def collect_stickers_from_packs(self, client: Client):
-        """Collect sticker IDs from sticker packs"""
-        global COLLECTED_STICKERS
-        try:
-            for pack_name in STICKER_PACK_NAMES:
-                try:
-                    sticker_set = await client.get_sticker_set(pack_name)
-                    for sticker in sticker_set.stickers:
-                        COLLECTED_STICKERS.append(sticker.file_id)
-                    print(f"Collected {len(sticker_set.stickers)} stickers from {pack_name}")
-                except Exception as e:
-                    print(f"Error collecting from {pack_name}: {e}")
-            
-            print(f"Total stickers collected: {len(COLLECTED_STICKERS)}")
-        except Exception as e:
-            print(f"Error in collect_stickers_from_packs: {e}")
-
     def get_random_sticker(self) -> str:
-        """Get random sticker from collected stickers"""
-        global COLLECTED_STICKERS
-        if COLLECTED_STICKERS:
-            return random.choice(COLLECTED_STICKERS)
-        else:
-            # Fallback stickers if collection fails
-            fallback_stickers = [
-                "CAACAgIAAxkBAAEBhF9kPi7sB_7q3yPs_5U2g7wQhb2CgwACIwADKA9qFOKi2_dLpCGMHgQ",
-                "CAACAgIAAxkBAAEBhGFkPi7wJEiK6dLtKcY5gOgQhb2ChwACJAADKA9qFCPu2_dLpCGMHgQ"
-            ]
-            return random.choice(fallback_stickers)
+        """Get random sticker from predefined packs"""
+        return random.choice(STICKER_PACKS)
 
 # Initialize hybrid chatbot
 hybrid_bot = HybridChatBot()
-
-# Add this function to initialize stickers when bot starts
-async def initialize_stickers():
-    """Initialize sticker collection from packs"""
-    try:
-        await hybrid_bot.collect_stickers_from_packs(ChatBot)
-    except Exception as e:
-        print(f"Error initializing stickers: {e}")
-
-# Call this when your bot starts (add this in your main bot startup code)
-# asyncio.create_task(initialize_stickers())
 
 # Database setup
 translator = GoogleTranslator()
