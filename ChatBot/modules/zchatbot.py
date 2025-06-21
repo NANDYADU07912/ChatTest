@@ -6,7 +6,7 @@ from pyrogram import Client, filters
 from pyrogram.errors import MessageEmpty
 from datetime import datetime, timedelta
 from pyrogram.enums import ChatMemberStatus, ChatType
-from pyrogram.errors import UserNotParticipant
+from pyrogram.errors import UserNotParticipant  
 from pyrogram.enums import ChatAction, ChatMemberStatus as CMS
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery
 from deep_translator import GoogleTranslator
@@ -55,7 +55,7 @@ class HybridChatBot:
         "Tum bilkul natural baat karti ho, koi AI jaise formal replies nahi deti. "
         "Emoji sirf last me lagati ho, beech me nahi. "
         "Tum context yaad rakhti ho previous messages ka. "
-        "Owner ke baare me puchhne par @WTF_WhyMeeh ka mention karti ho. "
+        "Owner ke baare me puchhne par '@WTF_WhyMeeh' ka mention karti ho aur kehti ho 'Mera owner hai' ya 'Wo mera creator hai'. "
         "Tum khud ko kabhi bot nahi manti, hamesha insaan hi kehti ho kyunki tum real ho. "
         "Replies me sirf ek sentence hota hai, do nahi. Very short and natural."
     )
@@ -96,43 +96,34 @@ class HybridChatBot:
         return f"{age} saal {months} mahine"
 
     def get_direct_reply(self, message: str) -> str:
-        """Direct human-like replies for common questions"""
-        message_lower = message.lower()
+        """Only very specific direct replies, let AI handle most cases"""
+        message_lower = message.lower().strip()
         
-        # Common greetings
-        if any(word in message_lower for word in ['hi', 'hello', 'hey', 'namaste', 'hii']):
-            return random.choice(["Hi", "Hello", "Hey", "Namaste", "Hii"])
+        # Only handle very exact matches to avoid overriding AI
+        exact_matches = {
+            # Only basic greetings - exact matches only
+            "hi": random.choice(["Hi", "Hello", "Hey"]),
+            "hello": random.choice(["Hi", "Hello", "Hey"]),
+            "hey": random.choice(["Hi", "Hello", "Hey"]),
+            "namaste": "Namaste",
             
-        # Food related
-        if 'khana' in message_lower and 'khaya' in message_lower:
-            return random.choice(["Haan khaya", "Nahi abhi", "Khaya tha", "Abhi nahi"])
+            # Only exact name questions
+            "naam kya hai": "Siya",
+            "tumhara naam": "Siya",
+            "your name": "Siya",
+            "name": "Siya",
             
-        # Location
-        if any(word in message_lower for word in ['kaha', 'kahan', 'where']):
-            return random.choice(["Ghar pe", "Patna me", "College me", "Bahar hun"])
-            
-        # What doing
-        if any(word in message_lower for word in ['kya kar', 'what doing', 'kya kr']):
-            return random.choice(["Padh rahi", "So rahi thi", "Kuch nahi", "Time pass"])
-            
-        # How are you
-        if any(word in message_lower for word in ['kaise ho', 'kaisi ho', 'how are']):
-            return random.choice(["Bas theek", "Acchi hun", "Mast hun", "Thik hun"])
-            
-        # Name
-        if any(word in message_lower for word in ['naam', 'name']):
-            return "Siya"
-            
-        # Age
-        if any(word in message_lower for word in ['umar', 'age', 'kitni']):
-            return f"{self.get_age()} ki hun"
-            
-        # Good night/morning
-        if any(word in message_lower for word in ['good night', 'gn', 'sona', 'bye']):
-            return random.choice(["Good night", "Bye", "Sona hai?", "Chalo bye"])
-            
-        if any(word in message_lower for word in ['good morning', 'gm']):
-            return random.choice(["Good morning", "GM", "Uth gaye?"])
+            # Very basic ones only
+            "bye": random.choice(["Bye", "Chalo bye"]),
+            "good night": "Good night",
+            "gn": "GN",
+            "good morning": "Good morning", 
+            "gm": "GM"
+        }
+        
+        # Check for exact matches only
+        if message_lower in exact_matches:
+            return exact_matches[message_lower]
             
         return None
 
@@ -301,32 +292,33 @@ async def hybrid_chatbot_response(client: Client, message: Message):
             response_text = None
             media_response = None
             
-            # Step 1: Try direct AI replies for common patterns
-            direct_reply = hybrid_bot.get_direct_reply(message.text)
-            if direct_reply:
-                response_text = direct_reply
-            else:
-                # Step 2: Check database for media responses only
+            # Step 1: Check database for media responses first
+            if message.text:
                 db_reply = await get_database_reply(message.text)
                 if db_reply and db_reply["check"] != "none":
                     # Media response from database (photos, videos, stickers, etc.)
                     media_response = db_reply
-                
-                # Step 3: For text responses, always use AI
-                if not media_response:
-                    # Get AI reply for text
+            
+            # Step 2: If no media response, try direct reply (very limited)
+            if not media_response and message.text:
+                direct_reply = hybrid_bot.get_direct_reply(message.text)
+                if direct_reply:
+                    response_text = direct_reply
+                else:
+                    # Step 3: Use AI for all other text responses
                     ai_reply = await hybrid_bot.get_ai_reply(message.text)
                     response_text = ai_reply
 
             # Handle language translation for text responses
-            chat_lang = await get_chat_language(chat_id)
-            if response_text and chat_lang and chat_lang != "nolang":
-                try:
-                    translated_text = GoogleTranslator(source='auto', target=chat_lang).translate(response_text)
-                    if translated_text:
-                        response_text = translated_text
-                except:
-                    pass
+            if response_text:
+                chat_lang = await get_chat_language(chat_id)
+                if chat_lang and chat_lang != "nolang":
+                    try:
+                        translated_text = GoogleTranslator(source='auto', target=chat_lang).translate(response_text)
+                        if translated_text:
+                            response_text = translated_text
+                    except:
+                        pass
 
             # Send response
             if media_response:
@@ -346,7 +338,7 @@ async def hybrid_chatbot_response(client: Client, message: Message):
                         await message.reply_voice(media_response["text"])
                 except:
                     # Fallback to AI text if media fails
-                    ai_reply = await hybrid_bot.get_ai_reply(message.text)
+                    ai_reply = await hybrid_bot.get_ai_reply(message.text or "")
                     emoji = random.choice(hybrid_bot.EMOJIS)
                     await message.reply_text(f"{ai_reply} {emoji}")
             elif response_text:
@@ -360,7 +352,7 @@ async def hybrid_chatbot_response(client: Client, message: Message):
             else:
                 # Ultimate fallback - AI reply
                 try:
-                    fallback_reply = await hybrid_bot.get_ai_reply(message.text)
+                    fallback_reply = await hybrid_bot.get_ai_reply(message.text or "")
                     emoji = random.choice(hybrid_bot.EMOJIS)
                     await message.reply_text(f"{fallback_reply} {emoji}")
                 except:
