@@ -28,6 +28,40 @@ GEMINI_API_KEYS = [
     "AIzaSyB-nCEOtnA_YfFSJzgkYj7uypTFZ5VvriM",
 ]
 
+# Sticker IDs for media responses
+MEDIA_RESPONSE_STICKERS = [
+    "CAACAgUAAxkBAAKPbWhWh_yGKkRJBJoiiEIG6_xgHa5gAAJyFwACtDMpVVkkTJ48Lz5KHgQ",
+    "CAACAgUAAxkBAAKPbmhWh_5fjK0F98ExmL3BxhTKNGMxAAJ8FAACWWLgVEV-ZekDpMkVHgQ",
+    "CAACAgUAAxkBAAKPb2hWiAABXBWHOZdRMPqQKGQy58CYagAC3RQAAqqdUVYrpT0Qq5oQoh4E",
+    "CAACAgUAAxkBAAKPcGhWiAIfhv--_Tkse63HQRqOF8G6AALMFgACjA4xVv7F1BrAK523HgQ",
+    "CAACAgUAAxkBAAKPcWhWiASHuSKZaB9BDaUi6IdoEvW-AAKXFgACTb-xVHPCYCAlehnhHgQ",
+    "CAACAgUAAxkBAAKPcmhWiAcIg4A673Yr1dMnUMCSjndcAAK5DgAC0i9oV2oj_2yKobByHgQ",
+    "CAACAgUAAxkBAAKPc2hWiBaGzwwVdArZ2FVYQxbJ8uMBAAJGFwACxImoVplBB1eChocrHgQ",
+    "CAACAgUAAxkBAAKPdGhWiBz1hdtzrqHiQzoQmRs1pL8IAALBEgACbcGwVrbrkS7PDhiGHgQ",
+    "CAACAgUAAxkBAAKPdWhWiCJK517UQpAqtzmHvRQ_SC7HAAIEGwAC1bEJVXOsI6HhQu68HgQ",
+    "CAACAgUAAxkBAAKPdmhWiCxLNs4HNqas8EYflNNfVWi0AAKlEwACGTjhVKAkI8UwyAoVHgQ",
+    "CAACAgUAAxkBAAKPd2hWiDRJ8GarO04SXeSweN-RU4inAAJ1FgACtk2xVHgvTfo1oCgKHgQ",
+    "CAACAgUAAxkBAAKPeGhWiDdkgE9c_q1D5UZ-9p7qhlmkAAJdEwACU-uxVFsuEtW6XeMCHgQ",
+    "CAACAgUAAxkBAAKPeWhWiD6XSwABrnmRCxqwgyUX1p-s7gACjhcAAnxWsVR1OAqc11cIZR4E",
+    "CAACAgUAAxkBAAKPemhWiEHh4ZmyeqaCExSchLVZQITnAAJ6FAAClV-xVMge7a4nIt4FHgQ",
+    "CAACAgUAAxkBAAKPm2hWiOOSX73X1_fvWCW91BnWtY_HAAJTFwACi9CwVFfwj93pSYW2HgQ",
+    "CAACAgUAAxkBAAKPnGhWiOcgIT0lEMl_0VxfUwuFN7svAAJ1FgACYWCwVBd3PlPcJwkNHgQ",
+    "CAACAgUAAxkBAAKPnWhWiO3eoKrDb8y97yZcW0Me2H6-AAJqEwACacawVMhPGwjYac__HgQ",
+    "CAACAgUAAxkBAAKPnmhWiO4U4o_TKPgNS5_vRhwibfjRAAJ7FwACmY2wVLASruiodCfyHgQ",
+    "CAACAgUAAxkBAAKPn2hWiPGXVrKF468xmNCnWPDjqz-kAAKuFAACAuSwVDfnt63P5XjAHgQ",
+    "CAACAgUAAxkBAAKPoGhWiPPPIk13rEeQgYXQV0la0RyxAALnGQACFG-wVDi4KpF4pWA1HgQ",
+    "CAACAgUAAxkBAAKPoWhWiPS23BZT0p_hgL2RUJQDgywtAAKrFQACya-xVMWUv1_ic5cBHgQ",
+    "CAACAgUAAxkBAAKPomhWiPW1xT7rJZ5ZYrDOwLp_vthAAAJBGAACLRSxVDxXrXR9n_RrHgQ",
+    "CAACAgUAAxkBAAKPo2hWiPUIiWUEI8UgKC2MduDXZhFLAAImFAACvk6xVJRv25R3syI2HgQ",
+    "CAACAgUAAxkBAAKPpGhWiPaECRkxahScy2cFuHZ7gzkAA3UTAALD8LBUy4RGOsnDjEUeBA",
+    "CAACAgUAAxkBAAKPpWhWiPerl_zzwaeVy6L0GNnPgVCIAAIXHQAC74iwVM8VIA9Az9ySHgQ",
+    "CAACAgUAAxkBAAKPpmhWiPgLN4zbsvm6omhTE0DyqcdNAAIJGAACDRSwVI_xzxGV173YHgQ",
+    "CAACAgUAAxkBAAKPp2hWiPmFDhZpuXo2RAuGemmHT2H7AALsGwACIHWxVKzjNjtQ8LXGHgQ",
+    "CAACAgUAAxkBAAKPqGhWiPvfE0mWy0R-pegX2qHZeLrPAAJiGQACkbawVIpOCFk3F-yhHgQ",
+    "CAACAgUAAxkBAAKPqWhWiPwOkCLC5uSx2Wa3TYOPn5hqAAKgFQACM0WwVExZM0c4TiZhHgQ",
+    "CAACAgUAAxkBAAKPqmhWiPxBB6uQLjuvjTYOxqGe9HsMAAIsFwACurawVJ_aZRIayzXCHgQ"
+]
+
 class HybridChatBot:
     EMOJIS = ["😊", "😂", "❤️", "🔥", "😎", "😘", "💖", "🥰", "😉", "🌟", "👍", "✨", "😜", "🤗", "😇"]
 
@@ -167,6 +201,10 @@ class HybridChatBot:
             except:
                 return random.choice(["Samjh nahi aya", "Kya kaha?", "Phir se bolo", "Thoda ruko"])
 
+    def get_random_sticker(self) -> str:
+        """Get random sticker for media responses"""
+        return random.choice(MEDIA_RESPONSE_STICKERS)
+
 # Initialize hybrid chatbot
 hybrid_bot = HybridChatBot()
 
@@ -240,6 +278,12 @@ async def get_chat_language(chat_id, bot_id):
     chat_lang = await lang_db.find_one({"chat_id": chat_id, "bot_id": bot_id})
     return chat_lang["language"] if chat_lang and "language" in chat_lang else None
 
+def is_media_message(message: Message) -> bool:
+    """Check if message contains any media"""
+    return bool(message.photo or message.video or message.audio or 
+                message.voice or message.sticker or message.animation or 
+                message.document or message.video_note)
+
 @Client.on_message(filters.incoming)
 async def hybrid_chatbot_response(client: Client, message: Message):
     try:
@@ -263,77 +307,61 @@ async def hybrid_chatbot_response(client: Client, message: Message):
         if ((message.reply_to_message and message.reply_to_message.from_user.id == client.me.id) or 
             not message.reply_to_message) and not message.from_user.is_bot:
             
-            response_text = None
-            media_response = None
-            
-            # Step 1: Try direct AI replies for common patterns
-            direct_reply = hybrid_bot.get_direct_reply(message.text)
-            if direct_reply:
-                response_text = direct_reply
-            else:
-                # Step 2: Check database for media responses only
-                db_reply = await get_database_reply(message.text)
-                if db_reply and db_reply["check"] != "none":
-                    # Media response from database (photos, videos, stickers, etc.)
-                    media_response = db_reply
+            # Check if incoming message is media
+            if is_media_message(message):
+                # Reply to any media with a random sticker
+                try:
+                    sticker_id = hybrid_bot.get_random_sticker()
+                    await message.reply_sticker(sticker_id)
+                except Exception as e:
+                    print(f"Error sending sticker: {e}")
+                    # Fallback to emoji if sticker fails
+                    await message.reply_text("😊")
+                return
+
+            # For text messages, use AI response
+            if message.text:
+                response_text = None
                 
-                # Step 3: For text responses, always use AI
-                if not media_response:
-                    # Get user context for AI (you can implement this based on your needs)
-                    user_context = ""  # Add context retrieval logic here
+                # Step 1: Try direct replies for common patterns
+                direct_reply = hybrid_bot.get_direct_reply(message.text)
+                if direct_reply:
+                    response_text = direct_reply
+                else:
+                    # Step 2: Use AI for all other text responses
+                    user_context = ""  # Add context retrieval logic here if needed
                     ai_reply = await hybrid_bot.get_ai_reply(message.text, user_context)
                     response_text = ai_reply
 
-            # Handle language translation
-            chat_lang = await get_chat_language(chat_id, bot_id)
-            if response_text and chat_lang and chat_lang != "nolang":
-                try:
-                    translated_text = GoogleTranslator(source='auto', target=chat_lang).translate(response_text)
-                    if translated_text:
-                        response_text = translated_text
-                except:
-                    pass
+                # Handle language translation
+                chat_lang = await get_chat_language(chat_id, bot_id)
+                if response_text and chat_lang and chat_lang != "nolang":
+                    try:
+                        translated_text = GoogleTranslator(source='auto', target=chat_lang).translate(response_text)
+                        if translated_text:
+                            response_text = translated_text
+                    except:
+                        pass
 
-            # Send response
-            if media_response:
-                # Send media response
-                try:
-                    if media_response["check"] == "sticker":
-                        await message.reply_sticker(media_response["text"])
-                    elif media_response["check"] == "photo":
-                        await message.reply_photo(media_response["text"])
-                    elif media_response["check"] == "video":
-                        await message.reply_video(media_response["text"])
-                    elif media_response["check"] == "audio":
-                        await message.reply_audio(media_response["text"])
-                    elif media_response["check"] == "gif":
-                        await message.reply_animation(media_response["text"])
-                    elif media_response["check"] == "voice":
-                        await message.reply_voice(media_response["text"])
-                except:
-                    # Fallback to AI text if media fails
-                    ai_reply = await hybrid_bot.get_ai_reply(message.text)
-                    emoji = random.choice(hybrid_bot.EMOJIS)
-                    await message.reply_text(f"{ai_reply} {emoji}")
-            elif response_text:
                 # Send text response with emoji
-                emoji = random.choice(hybrid_bot.EMOJIS)
-                final_text = f"{response_text} {emoji}"
-                try:
-                    await message.reply_text(final_text)
-                except:
-                    pass
-            else:
-                # Ultimate fallback
-                try:
-                    fallback_reply = await hybrid_bot.get_ai_reply(message.text)
+                if response_text:
                     emoji = random.choice(hybrid_bot.EMOJIS)
-                    await message.reply_text(f"{fallback_reply} {emoji}")
-                except:
-                    await message.reply_text("🙄🙄")
+                    final_text = f"{response_text} {emoji}"
+                    try:
+                        await message.reply_text(final_text)
+                    except:
+                        pass
+                else:
+                    # Ultimate fallback
+                    try:
+                        fallback_reply = await hybrid_bot.get_ai_reply("hello")
+                        emoji = random.choice(hybrid_bot.EMOJIS)
+                        await message.reply_text(f"{fallback_reply} {emoji}")
+                    except:
+                        await message.reply_text("🙄🙄")
 
-        # Save user replies for learning
-        if message.reply_to_message:
+        # Save user replies for learning (only text messages)
+        if message.reply_to_message and message.text:
             await save_reply(message.reply_to_message, message)
 
     except MessageEmpty:
