@@ -298,20 +298,25 @@ async def hybrid_chatbot_response(client: Client, message: Message):
             response_text = None
             media_response = None
             
-            # Step 1: Try direct reply (very limited) first
-            direct_reply = hybrid_bot.get_direct_reply(message.text)
-            if direct_reply:
-                response_text = direct_reply
+            # Check if user sent media (sticker, photo, video, etc.)
+            if message.sticker or message.photo or message.video or message.audio or message.animation or message.voice:
+                # For media messages, use database response
+                db_reply = await get_database_reply(message.text or "media")
+                if db_reply and db_reply["check"] != "none":
+                    media_response = db_reply
+                else:
+                    # If no media response found, use AI text
+                    ai_reply = await hybrid_bot.get_ai_reply("Nice media")
+                    response_text = ai_reply
             else:
-                # Step 2: Use AI for all text responses (database media disabled temporarily)
-                ai_reply = await hybrid_bot.get_ai_reply(message.text)
-                response_text = ai_reply
-                
-            # Step 3: Check database for media responses only if no text response
-            # (Currently disabled to prioritize AI responses)
-            # db_reply = await get_database_reply(message.text)
-            # if db_reply and db_reply["check"] != "none":
-            #     media_response = db_reply
+                # For text messages, use AI only
+                direct_reply = hybrid_bot.get_direct_reply(message.text)
+                if direct_reply:
+                    response_text = direct_reply
+                else:
+                    # Always use AI for text messages
+                    ai_reply = await hybrid_bot.get_ai_reply(message.text)
+                    response_text = ai_reply
 
             # Handle language translation for text responses
             if response_text:
@@ -325,7 +330,27 @@ async def hybrid_chatbot_response(client: Client, message: Message):
                         pass
 
             # Send response
-            if response_text:
+            if media_response:
+                # Send media response from database
+                try:
+                    if media_response["check"] == "sticker":
+                        await message.reply_sticker(media_response["text"])
+                    elif media_response["check"] == "photo":
+                        await message.reply_photo(media_response["text"])
+                    elif media_response["check"] == "video":
+                        await message.reply_video(media_response["text"])
+                    elif media_response["check"] == "audio":
+                        await message.reply_audio(media_response["text"])
+                    elif media_response["check"] == "gif":
+                        await message.reply_animation(media_response["text"])
+                    elif media_response["check"] == "voice":
+                        await message.reply_voice(media_response["text"])
+                except:
+                    # Fallback to AI text if media fails
+                    ai_reply = await hybrid_bot.get_ai_reply(message.text)
+                    emoji = random.choice(hybrid_bot.EMOJIS)
+                    await message.reply_text(f"{ai_reply} {emoji}")
+            elif response_text:
                 # Send AI-generated text response with emoji
                 emoji = random.choice(hybrid_bot.EMOJIS)
                 final_text = f"{response_text} {emoji}"
