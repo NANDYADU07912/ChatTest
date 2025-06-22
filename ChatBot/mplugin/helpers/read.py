@@ -3,7 +3,7 @@ from ChatBot import ChatBot
 from pyrogram import Client, filters
 
 START = """**
-🤖 **{}** ᴛʜᴇ **sᴜᴘᴇʀғᴀsᴛ ᴄʜᴀᴛʙᴏᴛ** 🚀
+🤖 **ɪ'ᴍ** ᴛʜᴇ **sᴜᴘᴇʀғᴀsᴛ ᴄʜᴀᴛʙᴏᴛ** 🚀
 
 ✨ **ғᴇᴀᴛᴜʀᴇs:**
 🎯 sᴜᴘᴘᴏʀᴛs ᴛᴇxᴛ, sᴛɪᴄᴋᴇʀ, ᴘʜᴏᴛᴏ, ᴠɪᴅᴇᴏ
