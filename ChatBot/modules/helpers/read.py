@@ -12,7 +12,7 @@ START = """
 🛠️ **ᴍᴀᴋᴇ ʏᴏᴜʀ ᴏᴡɴ ᴄʜᴀᴛʙᴏᴛ ғʀᴏᴍ [@Shruticlone](https://t.me/Shruticlone)**
 👤 **ɪᴅ-ᴄʜᴀᴛʙᴏᴛ sᴜᴘᴘᴏʀᴛ**
 
-💝 **ᴘᴏᴡᴇʀᴇᴅ ʙʏ [𝐒ʜʀᴜᴛɪ ʙᴏᴛs](https://t.me/ShrutiBots**)
+💝 **ᴘᴏᴡᴇʀᴇᴅ ʙʏ [𝐒ʜʀᴜᴛɪ ʙᴏᴛs](https://t.me/ShrutiBots)**
 """
 
 HELP_READ = f"""**
