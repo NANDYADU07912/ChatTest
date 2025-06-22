@@ -43,6 +43,7 @@ GEMINI_API_KEYS = [
     "AIzaSyBMJyHLvZXtDzYtel7s_qjbGWxAlc2bhV0",
     "AIzaSyAS1v7qAI4GSkzd4PWnPDNO_DLCJl1w-GA",
     "AIzaSyB-nCEOtnA_YfFSJzgkYj7uypTFZ5VvriM",
+    "AIzaSyBsTxK5ISHRYZ7yS8uL8vG0uny-35x3Exo",
 ]
 
 # Updated sticker file IDs with your new ones
