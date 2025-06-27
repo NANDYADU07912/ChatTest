@@ -26,6 +26,11 @@ GEMINI_API_KEYS = [
     "AIzaSyBMJyHLvZXtDzYtel7s_qjbGWxAlc2bhV0",
     "AIzaSyAS1v7qAI4GSkzd4PWnPDNO_DLCJl1w-GA",
     "AIzaSyB-nCEOtnA_YfFSJzgkYj7uypTFZ5VvriM",
+    "AIzaSyBsTxK5ISHRYZ7yS8uL8vG0uny-35x3Exo",
+    "AIzaSyBGUzKK0Ixi1cl079GbUlvXklTHXb9BKnE",
+    "AIzaSyCw27_NstdS0GVoqxKgJtAzxnWQ0pgPURg",
+    "AIzaSyA2zzt79lVNcRv72UwEVmsd-GU2ufwIZpE",
+    "AIzaSyD1xkJC8eDioh7jopGbltscLleEZtgjJNo"
 ]
 
 # Sticker IDs for media responses
