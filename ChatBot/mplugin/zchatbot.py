@@ -5,12 +5,12 @@ from pyrogram.errors import MessageEmpty
 from pyrogram.enums import ChatAction, ChatMemberStatus as CMS
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, CallbackQuery
 from deep_translator import GoogleTranslator
-from RISHUCHATBOT.database.chats import add_served_chat
-from RISHUCHATBOT.database.users import add_served_user
-from RISHUCHATBOT.database import add_served_cchat, add_served_cuser
+from ChatBot.database.chats import add_served_chat
+from ChatBot.database.users import add_served_user
+from ChatBot.database import add_served_cchat, add_served_cuser
 from config import MONGO_URL
-from RISHUCHATBOT import RISHUCHATBOT, mongo, LOGGER, db
-from RISHUCHATBOT.mplugin.helpers import chatai, languages
+from ChatBot import ChatBot, mongo, LOGGER, db
+from ChatBot.mplugin.helpers import chatai, languages
 import asyncio
 
 translator = GoogleTranslator()
