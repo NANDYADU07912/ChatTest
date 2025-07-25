@@ -618,10 +618,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Success message
-logger.info("🎉 Start.py loaded successfully with enhanced features!")ʙʏ: @ShrutiBots**"
-        ),
-        reply_markup=InlineKeyboardMarkup(ping_buttons),
-    )
+logger.info("🎉 Start.py loaded successfully with enhanced features! ʙʏ: @ShrutiBots**")
     
     if message.chat.type == ChatType.PRIVATE:
         await add_served_cuser(bot_id, message.from_user.id)
