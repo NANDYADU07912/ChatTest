@@ -366,8 +366,54 @@ async def start_command(client, message: Message):
         
         await message.reply_photo(
             photo=random.choice(IMG),
+            caption=enhanced_group_start,
+            reply_markup=InlineKeyboardMarkup(group_buttons),
+        )
+        await add_served_cchat(bot_id, message.chat.id)
+        await add_served_chat(message.chat.id)
+
+@Client.on_message(filters.command("help"))
+async def help_command(client, message: Message):
+    bot_id = client.me.id
+    settings = await get_bot_settings(bot_id)
+    
+    if message.chat.type == ChatType.PRIVATE:
+        help_buttons = [
+            [
+                InlineKeyboardButton("🤖 ᴄʜᴀᴛʙᴏᴛ", callback_data="help_chatbot"),
+                InlineKeyboardButton("🌍 ʟᴀɴɢᴜᴀɢᴇ", callback_data="help_language")
+            ],
+            [
+                InlineKeyboardButton("📊 sᴛᴀᴛs", callback_data="help_stats"),
+                InlineKeyboardButton("🛠 ᴀᴅᴍɪɴ", callback_data="help_admin")
+            ],
+            [
+                InlineKeyboardButton("📢 sᴜᴘᴘᴏʀᴛ ᴄʜᴀɴɴᴇʟ", url=settings['support_channel']),
+                InlineKeyboardButton("👥 sᴜᴘᴘᴏʀᴛ ɢʀᴏᴜᴘ", url=settings['support_group'])
+            ],
+            [InlineKeyboardButton("🔒 ᴄʟᴏsᴇ", callback_data="close")]
+        ]
+        
+        help_text = (
+            f"**🛠 ʜᴇʟᴘ ᴍᴇɴᴜ - {client.me.first_name}**\n\n"
+            f"**🤖 ᴄʜᴀᴛʙᴏᴛ ᴄᴏᴍᴍᴀɴᴅs:**\n"
+            f"• `/chatbot` - �ᴇɴᴀʙʟᴇ/ᴅɪsᴀʙʟᴇ ᴄʜᴀᴛʙᴏᴛ\n"
+            f"• `/status` - ᴄʜᴇᴄᴋ ᴄʜᴀᴛʙᴏᴛ sᴛᴀᴛᴜs\n\n"
+            f"**🌍 ʟᴀɴɢᴜᴀɢᴇ ᴄᴏᴍᴍᴀɴᴅs:**\n"
+            f"• `/lang` - sᴇᴛ ʙᴏᴛ ʟᴀɴɢᴜᴀɢᴇ\n"
+            f"• `/chatlang` - ᴄʜᴇᴄᴋ ᴄᴜʀʀᴇɴᴛ ʟᴀɴɢᴜᴀɢᴇ\n"
+            f"• `/resetlang` - ʀᴇsᴇᴛ ᴛᴏ ᴅᴇғᴀᴜʟᴛ\n\n"
+            f"**📊 ɪɴғᴏ ᴄᴏᴍᴍᴀɴᴅs:**\n"
+            f"• `/ping` - ᴄʜᴇᴄᴋ ʙᴏᴛ sᴛᴀᴛᴜs\n"
+            f"• `/stats` - ᴠɪᴇᴡ ʙᴏᴛ sᴛᴀᴛɪsᴛɪᴄs\n"
+            f"• `/id` - ɢᴇᴛ ᴄʜᴀᴛ/ᴜsᴇʀ ɪᴅs\n\n"
+            f"**💬 ᴊᴜsᴛ sᴇɴᴅ ᴀ ᴍᴇssᴀɢᴇ ᴛᴏ sᴛᴀʀᴛ ᴄʜᴀᴛᴛɪɴɢ!**"
+        )
+
+        await message.reply_photo(
+            photo=random.choice(IMG),
             caption=help_text,
-            reply_markup=InlineKeyboardMarkup(help_buttons),
+            reply_markup=InlineKeyboardMarkup(help_buttons)
         )
     else:
         group_help_buttons = [
@@ -618,14 +664,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Success message
-logger.info("🎉 Start.py loaded successfully with enhanced features! ʙʏ: @ShrutiBots**")
-    
-    if message.chat.type == ChatType.PRIVATE:
-        await add_served_cuser(bot_id, message.from_user.id)
-        await add_served_user(message.from_user.id)
-    else:
-        await add_served_cchat(bot_id, message.chat.id)
-        await add_served_chat(message.chat.id)
+logger.info("🎉 Start.py loaded successfully with enhanced features! ʙʏ: @ShrutiBots")
 
 @Client.on_message(filters.command("stats"))
 async def stats_command(client, message: Message):
@@ -939,60 +978,7 @@ async def refresh_ping_callback(client, callback_query: CallbackQuery):
             f"**├ 💿 ᴅɪsᴋ:** `{DISK}`\n"
             f"**└ ⏰ ᴜᴘᴛɪᴍᴇ:** `{UP}`\n\n"
             f"**🚀 sᴛᴀᴛᴜs:** {'🟢 ᴏɴʟɪɴᴇ' if ms < 100 else '🟡 sʟᴏᴡ' if ms < 200 else '🔴 ʟᴀɢɢɪɴɢ'}\n\n"
-            f"**🔥 ᴘᴏᴡᴇʀᴇᴅ  ᴊᴜsᴛ ᴛᴀɢ ᴍᴇ ᴏʀ ʀᴇᴘʟʏ ᴛᴏ sᴛᴀʀᴛ ᴄʜᴀᴛᴛɪɴɢ!**\n\n"
             f"**🔥 ᴘᴏᴡᴇʀᴇᴅ ʙʏ: @ShrutiBots**"
-        )
-        
-        await message.reply_photo(
-            photo=random.choice(IMG),
-            caption=enhanced_group_start,
-            reply_markup=InlineKeyboardMarkup(group_buttons),
-        )
-        await add_served_cchat(bot_id, message.chat.id)
-        await add_served_chat(message.chat.id)
-
-
-
-@Client.on_message(filters.command("help"))
-async def help_command(client, message: Message):
-    bot_id = client.me.id
-    settings = await get_bot_settings(bot_id)
-    
-    if message.chat.type == ChatType.PRIVATE:
-        help_buttons = [
-            [
-                InlineKeyboardButton("🤖 ᴄʜᴀᴛʙᴏᴛ", callback_data="help_chatbot"),
-                InlineKeyboardButton("🌍 ʟᴀɴɢᴜᴀɢᴇ", callback_data="help_language")
-            ],
-            [
-                InlineKeyboardButton("📊 sᴛᴀᴛs", callback_data="help_stats"),
-                InlineKeyboardButton("🛠 ᴀᴅᴍɪɴ", callback_data="help_admin")
-            ],
-            [
-                InlineKeyboardButton("📢 sᴜᴘᴘᴏʀᴛ ᴄʜᴀɴɴᴇʟ", url=settings['support_channel']),
-                InlineKeyboardButton("👥 sᴜᴘᴘᴏʀᴛ ɢʀᴏᴜᴘ", url=settings['support_group'])
-            ],
-            [InlineKeyboardButton("🔒 ᴄʟᴏsᴇ", callback_data="close")]
-        ]
-        
-        help_text = (
-            f"**🛠 ʜᴇʟᴘ ᴍᴇɴᴜ - {client.me.first_name}**\n\n"
-            f"**🤖 ᴄʜᴀᴛʙᴏᴛ ᴄᴏᴍᴍᴀɴᴅs:**\n"
-            f"• `/chatbot` - ᴇɴᴀʙʟᴇ/ᴅɪsᴀʙʟᴇ ᴄʜᴀᴛʙᴏᴛ\n"
-            f"• `/status` - ᴄʜᴇᴄᴋ ᴄʜᴀᴛʙᴏᴛ sᴛᴀᴛᴜs\n\n"
-            f"**🌍 ʟᴀɴɢᴜᴀɢᴇ ᴄᴏᴍᴍᴀɴᴅs:**\n"
-            f"• `/lang` - sᴇᴛ ʙᴏᴛ ʟᴀɴɢᴜᴀɢᴇ\n"
-            f"• `/chatlang` - ᴄʜᴇᴄᴋ ᴄᴜʀʀᴇɴᴛ ʟᴀɴɢᴜᴀɢᴇ\n"
-            f"• `/resetlang` - ʀᴇsᴇᴛ ᴛᴏ ᴅᴇғᴀᴜʟᴛ\n\n"
-            f"**📊 ɪɴғᴏ ᴄᴏᴍᴍᴀɴᴅs:**\n"
-            f"• `/ping` - ᴄʜᴇᴄᴋ ʙᴏᴛ sᴛᴀᴛᴜs\n"
-            f"• `/stats` - ᴠɪᴇᴡ ʙᴏᴛ sᴛᴀᴛɪsᴛɪᴄs\n"
-            f"• `/id` - ɢᴇᴛ ᴄʜᴀᴛ/ᴜsᴇʀ ɪᴅs\n\n"
-            f"**💬 ᴊᴜsᴛ sᴇɴᴅ ᴀ ᴍᴇssᴀɢᴇ ᴛᴏ sᴛᴀʀᴛ ᴄʜᴀᴛᴛɪɴɢ!**"
-        )
-
-        await message.reply_photo(
-            photo=random.choice(IMG),
-            caption=help_text,
-            reply_markup=InlineKeyboardMarkup(help_buttons)
-        )
+        ),
+        reply_markup=InlineKeyboardMarkup(ping_buttons)
+    )
