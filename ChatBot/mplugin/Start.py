@@ -951,6 +951,8 @@ async def refresh_ping_callback(client, callback_query: CallbackQuery):
         await add_served_cchat(bot_id, message.chat.id)
         await add_served_chat(message.chat.id)
 
+
+
 @Client.on_message(filters.command("help"))
 async def help_command(client, message: Message):
     bot_id = client.me.id
@@ -986,4 +988,11 @@ async def help_command(client, message: Message):
             f"• `/ping` - ᴄʜᴇᴄᴋ ʙᴏᴛ sᴛᴀᴛᴜs\n"
             f"• `/stats` - ᴠɪᴇᴡ ʙᴏᴛ sᴛᴀᴛɪsᴛɪᴄs\n"
             f"• `/id` - ɢᴇᴛ ᴄʜᴀᴛ/ᴜsᴇʀ ɪᴅs\n\n"
-            f"**💬
+            f"**💬 ᴊᴜsᴛ sᴇɴᴅ ᴀ ᴍᴇssᴀɢᴇ ᴛᴏ sᴛᴀʀᴛ ᴄʜᴀᴛᴛɪɴɢ!**"
+        )
+
+        await message.reply_photo(
+            photo=random.choice(IMG),
+            caption=help_text,
+            reply_markup=InlineKeyboardMarkup(help_buttons)
+        )
