@@ -252,9 +252,10 @@ async def start_command(client, message: Message):
         # Cool Loading Animation
         loading = await message.reply_text(random.choice(EMOJIOS))
         steps = [
-            "**✦ sᴛᴀʀᴛɪɴɢ...**",
-            "**✦✦ ʟᴏᴀᴅɪɴɢ ᴍᴏᴅᴜʟᴇs...**",
-            "**✦✦✦ ʀᴇᴀᴅʏ ᴛᴏ ʀᴏᴄᴋ!**"
+            "🤍",
+            "💛",
+            "💙",
+            "🖤",
         ]
         for step in steps:
             await loading.edit(step)
