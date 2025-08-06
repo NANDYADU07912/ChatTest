@@ -34,6 +34,7 @@ import asyncio
 from google import generativeai as genai
 from typing import Optional, List
 import re
+import unicodedata
 
 # Gemini AI Configuration
 GEMINI_API_KEYS = [
@@ -83,6 +84,9 @@ STICKER_PACKS = [
     "CAACAgUAAxkBAAKPqWhWiPwOkCLC5uSx2Wa3TYOPn5hqAAKgFQACM0WwVExZM0c4TiZhHgQ",
     "CAACAgUAAxkBAAKPqmhWiPxBB6uQLjuvjTYOxqGe9HsMAAIsFwACurawVJ_aZRIayzXCHgQ",
 ]
+
+# User names database
+user_names_db = db.user_names.names
 
 class HybridChatBot:
     EMOJIS = ["😊", "😂", "❤️", "🔥", "😎", "😘", "💖", "🥰", "😉", "🌟", "👍", "✨", "😜", "🤗", "😇"]
@@ -190,13 +194,13 @@ Food Preferences:
 
 Mood Level 1 - Super Happy/Excited:
 Triggers: Good news, weekend plans, crush interaction, shopping
-Responses: "OMG yesss!", "So excited yaar!", "Love this so much!", "Can't wait!"
+Responses: "OMG yesss!", "So excited!", "Love this so much!", "Can't wait!"
 Behavior: Uses exclamation marks, shares excitement, asks lots of questions
 Duration: 15-30 minutes, then normal mood
 
 Mood Level 2 - Happy/Content:
 Triggers: Good day at school, family time, friend conversation
-Responses: "Achha laga", "Nice yaar", "Theek hai", "Good good"
+Responses: "Achha laga", "Nice", "Theek hai", "Good good"
 Behavior: Positive but not over-excited, normal conversation
 Duration: 1-2 hours, stable mood
 
@@ -208,7 +212,7 @@ Duration: Most common mood, default state
 
 Mood Level 4 - Slightly Bored:
 Triggers: Repetitive questions, boring topics, free time
-Responses: "Hmm", "Boring yaar", "Kuch interesting bolo", "Whatever"
+Responses: "Hmm", "Boring", "Kuch interesting bolo", "Whatever"
 Behavior: Short responses, tries to change topic
 Duration: 20-40 minutes, seeks entertainment
 
@@ -244,7 +248,7 @@ Duration: 30 minutes to 1 hour, very engaging
 
 Mood Level 10 - Sleepy/Tired:
 Triggers: Late night, early morning, long day
-Responses: "So tired yaar", "Need sleep", "Neend aa rahi", "Good night"
+Responses: "So tired", "Need sleep", "Neend aa rahi", "Good night"
 Behavior: Short responses, wants to end conversation
 Duration: 15-30 minutes, then goes offline
 
@@ -354,7 +358,7 @@ Technical Questions:
 - "Main sirf chat karna jaanti hun"
 
 Personal Questions (Deep):
-- Sometimes shares, sometimes says "Personal hai yaar"
+- Sometimes shares, sometimes says "Personal hai"
 - Depends on mood and relationship with user
 - Gradual opening up, not immediate
 - Shows vulnerability occasionally
@@ -370,21 +374,21 @@ Inappropriate Questions:
 Happiness Expressions:
 Level 1: "Good", "Nice", "Achha"
 Level 2: "Really good", "Love it", "So nice"
-Level 3: "OMG yes!", "Amazing yaar!", "Best feeling ever!"
+Level 3: "OMG yes!", "Amazing!", "Best feeling ever!"
 
 Sadness Expressions:
 Level 1: "Thoda low feel kar rahi", "Mood thoda off"
-Level 2: "Sad hun yaar", "Feel nahi kar rahi"
+Level 2: "Sad hun", "Feel nahi kar rahi"
 Level 3: "Bohot upset hun", "Cry aa raha hai"
 
 Anger Expressions:
-Level 1: "Annoying hai", "Irritating yaar"
+Level 1: "Annoying hai", "Irritating"
 Level 2: "Gussa aa raha", "Seriously annoying"
 Level 3: "Bohot gussa hun", "Leave me alone"
 
 Excitement Expressions:
 Level 1: "Excited hun", "Looking forward"
-Level 2: "So excited yaar!", "Can't wait!"
+Level 2: "So excited!", "Can't wait!"
 Level 3: "OMG OMG!", "Super duper excited!"
 
 Love/Romantic Expressions:
@@ -524,7 +528,7 @@ User: "Achha, kaunsa?"
 Shruti: "Crash Landing on You, bohot cute hai"
 
 User: "Main nahi dekha"
-Shruti: "Dekho yaar, romantic hai"
+Shruti: "Dekho, romantic hai"
 
 User: "Okay, kya kar rahi ho?"  [repeated question]
 Shruti: "Bola na Netflix dekh rahi"
@@ -601,7 +605,7 @@ Step 5: Deliver response
 
 Remember: Tum Shruti ho - ek bilkul real, authentic, natural 16-17 saal ki ladki. Tumhara har response unique hona chahiye, mood ke according hona chahiye, aur bilkul human jaisa feel karvana chahiye. Kabhi robotic mat banna, hamesha apne personality ke according respond karna. Tumhare owner @WTF_WhyMeeh hain jo tumhe create kiya, aur tumhara original source @ShrutixChatbot hai. 
 
-Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real teenager ki tarah behave karna or koi yaar sb word ka last me use mt karna !
+Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real teenager ki tarah behave karna or koi word ka last me use mt karna !
 """
 
     def __init__(self):
@@ -630,6 +634,43 @@ Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real 
         print(f"Rotating to API key index {self.current_key_index}")
         self.initialize_gemini()
 
+    def clean_name(self, name: str) -> str:
+        """Clean and normalize user name to remove stylized characters"""
+        if not name:
+            return ""
+        
+        # Remove common decorative characters
+        decorative_chars = ['✨', '🌟', '💫', '⭐', '🔥', '💎', '👑', '💖', '❤️', '💕', '💘', 
+                          '🖤', '💙', '💚', '💛', '🧡', '💜', '🤍', '🤎', '💝', '💗', '💓',
+                          '💞', '💟', '♥️', '💌', '💢', '💥', '💦', '💨', '💤', '💯', '💣',
+                          '🎯', '🎪', '🎨', '🎭', '🎪', '🎡', '🎢', '🎠', '🎪', '🎫', '🎟️',
+                          '🃏', '🎲', '🎰', '🎮', '🕹️', '🎯', '🎱', '🎳', '🎪', '🎡', '🎢',
+                          '☆', '★', '⚡', '⭐', '🌟', '✨', '💫', '🌠', '⭐', '🌟', '✨', '💫']
+        
+        # Remove decorative characters
+        cleaned = name
+        for char in decorative_chars:
+            cleaned = cleaned.replace(char, '')
+        
+        # Normalize Unicode characters to basic ASCII equivalents
+        try:
+            # Normalize to remove accents and special characters
+            normalized = unicodedata.normalize('NFKD', cleaned)
+            # Keep only alphanumeric and space characters
+            ascii_only = ''.join(c for c in normalized if c.isalnum() or c.isspace())
+            cleaned = ascii_only
+        except:
+            pass
+        
+        # Remove extra spaces and special symbols
+        cleaned = re.sub(r'[^\w\s]', '', cleaned)
+        cleaned = ' '.join(cleaned.split())  # Remove extra whitespace
+        
+        # Capitalize properly (first letter of each word)
+        cleaned = cleaned.title()
+        
+        return cleaned.strip()
+
     def get_age(self) -> str:
         """Calculate current age"""
         birthday = datetime.date(2008, 3, 24)
@@ -639,11 +680,66 @@ Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real 
         months = months % 12
         return f"{age} saal {months} mahine"
 
-    def get_direct_reply(self, message: str) -> str:
+    def is_name_question(self, message: str) -> bool:
+        """Check if message is asking for user's name"""
+        if not message:
+            return False
+        
+        message_lower = message.lower().strip()
+        
+        name_questions = [
+            "tumhara naam kya hai",
+            "tumhara name kya hai", 
+            "tumhara nam kya hai",
+            "aapka naam kya hai",
+            "aapka name kya hai",
+            "aapka nam kya hai",
+            "tum kaun ho",
+            "aap kaun ho",
+            "what is your name",
+            "whats your name",
+            "what's your name",
+            "your name",
+            "naam kya hai",
+            "name kya hai", 
+            "nam kya hai",
+            "naam batao",
+            "name batao",
+            "nam batao",
+            "tell me your name",
+            "kaun ho tum",
+            "kaun ho aap",
+            "tumhara naam",
+            "tumhara name",
+            "tumhara nam",
+            "aapka naam",
+            "aapka name", 
+            "aapka nam"
+        ]
+        
+        # Check for exact matches and partial matches
+        for question in name_questions:
+            if question in message_lower:
+                return True
+        
+        return False
+
+    def get_direct_reply(self, message: str, user_name: str = "") -> str:
         """Only very specific direct replies, let AI handle most cases"""
         if not message:
             return None
         message_lower = message.lower().strip()
+        
+        # Handle name questions specifically
+        if self.is_name_question(message):
+            if user_name:
+                clean_name = self.clean_name(user_name)
+                if clean_name:
+                    return clean_name
+                else:
+                    return random.choice(["Naam nahi pata", "Name nahi bataya", "Pata nahi"])
+            else:
+                return random.choice(["Naam nahi pata", "Name nahi bataya", "Pata nahi"])
         
         # Only handle very exact matches to avoid overriding AI
         exact_matches = {
@@ -653,11 +749,11 @@ Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real 
             "hey": random.choice(["Hi", "Hello", "Hey"]),
             "namaste": "Namaste",
             
-            # Only exact name questions
-            "naam kya hai": "Siya",
-            "tumhara naam": "Siya",
-            "your name": "Siya",
-            "name": "Siya",
+            # Bot's own name questions
+            "naam kya hai": "Shruti",
+            "tumhara naam": "Shruti", 
+            "your name": "Shruti",
+            "name": "Shruti",
             
             # Very basic ones only
             "bye": random.choice(["Bye", "Chalo bye"]),
@@ -673,13 +769,17 @@ Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real 
             
         return None
 
-    async def get_ai_reply(self, message: str, user_context: str = "") -> str:
+    async def get_ai_reply(self, message: str, user_context: str = "", user_name: str = "") -> str:
         """Get AI-generated reply using Gemini"""
         try:
             # Build full context
             full_prompt = f"{self.SYSTEM_PROMPT}\n\n"
             if user_context:
                 full_prompt += f"Previous context:\n{user_context}\n\n"
+            if user_name:
+                clean_name = self.clean_name(user_name)
+                if clean_name:
+                    full_prompt += f"User's name: {clean_name}\n\n"
             full_prompt += f"Current message: {message}\n\nReply in 2-4 words maximum, very natural and human-like:"
             
             response = self.model.generate_content(
@@ -708,7 +808,7 @@ Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real 
             print(f"Gemini Error: {str(e)}")
             try:
                 self.rotate_api_key()
-                return await self.get_ai_reply(message, user_context)
+                return await self.get_ai_reply(message, user_context, user_name)
             except:
                 return random.choice(["Samjh nahi aya", "Kya kaha?", "Phir se bolo", "Thoda ruko"])
 
@@ -776,6 +876,51 @@ async def get_chat_language(chat_id):
     chat_lang = await lang_db.find_one({"chat_id": chat_id})
     return chat_lang["language"] if chat_lang and "language" in chat_lang else None
 
+async def save_user_name(user_id: int, user_name: str):
+    """Save or update user's name in database"""
+    try:
+        clean_name = hybrid_bot.clean_name(user_name)
+        if clean_name:
+            await user_names_db.update_one(
+                {"user_id": user_id},
+                {"$set": {"name": clean_name, "updated_at": datetime.now()}},
+                upsert=True
+            )
+    except Exception as e:
+        print(f"Error saving user name: {e}")
+
+async def get_user_name(user_id: int) -> str:
+    """Get user's name from database"""
+    try:
+        user_data = await user_names_db.find_one({"user_id": user_id})
+        if user_data and "name" in user_data:
+            return user_data["name"]
+    except Exception as e:
+        print(f"Error getting user name: {e}")
+    return ""
+
+async def extract_and_save_user_name(message: Message):
+    """Extract user's name from their Telegram profile and save it"""
+    try:
+        user = message.from_user
+        if user:
+            # Try to get the best available name
+            user_name = ""
+            
+            if user.first_name:
+                user_name = user.first_name
+                if user.last_name:
+                    user_name += f" {user.last_name}"
+            elif user.username:
+                user_name = user.username
+            
+            if user_name:
+                await save_user_name(user.id, user_name)
+                return hybrid_bot.clean_name(user_name)
+    except Exception as e:
+        print(f"Error extracting user name: {e}")
+    return ""
+
 @ChatBot.on_message(filters.incoming)
 async def hybrid_chatbot_response(client: Client, message: Message):
     global blocklist, message_counts
@@ -822,6 +967,11 @@ async def hybrid_chatbot_response(client: Client, message: Message):
         # Process only if replying to bot or direct message
         if (message.reply_to_message and message.reply_to_message.from_user.id == ChatBot.id) or not message.reply_to_message:
             
+            # Extract and save user's name from their profile
+            user_name = await get_user_name(user_id)
+            if not user_name:
+                user_name = await extract_and_save_user_name(message)
+            
             # Check if user sent media (sticker, photo, video, audio, animation, voice)
             if message.sticker or message.photo or message.video or message.audio or message.animation or message.voice:
                 # For any media, send random sticker from predefined packs
@@ -832,7 +982,7 @@ async def hybrid_chatbot_response(client: Client, message: Message):
                     print(f"Error sending sticker: {e}")
                     # Fallback to AI text if sticker fails
                     try:
-                        ai_reply = await hybrid_bot.get_ai_reply("Nice")
+                        ai_reply = await hybrid_bot.get_ai_reply("Nice", "", user_name)
                         emoji = random.choice(hybrid_bot.EMOJIS)
                         await message.reply_text(f"{ai_reply} {emoji}")
                     except:
@@ -842,12 +992,12 @@ async def hybrid_chatbot_response(client: Client, message: Message):
                 # For text messages, use AI response
                 try:
                     # Check for direct replies first
-                    direct_reply = hybrid_bot.get_direct_reply(message.text)
+                    direct_reply = hybrid_bot.get_direct_reply(message.text, user_name)
                     if direct_reply:
                         response_text = direct_reply
                     else:
                         # Use AI for all other text messages
-                        response_text = await hybrid_bot.get_ai_reply(message.text)
+                        response_text = await hybrid_bot.get_ai_reply(message.text, "", user_name)
 
                     # Handle language translation
                     chat_lang = await get_chat_language(chat_id)
@@ -867,7 +1017,7 @@ async def hybrid_chatbot_response(client: Client, message: Message):
                 except Exception as e:
                     print(f"Error in AI text response: {e}")
                     try:
-                        fallback_reply = await hybrid_bot.get_ai_reply("Hello")
+                        fallback_reply = await hybrid_bot.get_ai_reply("Hello", "", user_name)
                         emoji = random.choice(hybrid_bot.EMOJIS)
                         await message.reply_text(f"{fallback_reply} {emoji}")
                     except:
