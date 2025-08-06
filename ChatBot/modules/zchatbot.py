@@ -680,14 +680,62 @@ Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real 
         months = months % 12
         return f"{age} saal {months} mahine"
 
-    def is_name_question(self, message: str) -> bool:
-        """Check if message is asking for user's name"""
+    def is_asking_user_name(self, message: str) -> bool:
+        """Check if message is asking for USER's name (not bot's name)"""
         if not message:
             return False
         
         message_lower = message.lower().strip()
         
-        name_questions = [
+        # Specific patterns that ask for USER's name
+        user_name_questions = [
+            "mera naam kya hai",
+            "mera name kya hai",
+            "mera nam kya hai", 
+            "mera naam",
+            "mera name",
+            "mera nam",
+            "mera naam btao",
+            "mera name btao",
+            "mera nam btao",
+            "main kaun hun",
+            "main kaun hu", 
+            "kaun hun main",
+            "kaun hu main",
+            "my name",
+            "what is my name",
+            "whats my name",
+            "what's my name",
+            "tell my name",
+            "naam kya hai mera",
+            "name kya hai mera",
+            "nam kya hai mera",
+            "mujhe pehchante ho",
+            "mujhe jante ho",
+            "pehchante ho mujhe",
+            "jante ho mujhe",
+            "mai kaun",
+            "mai kon",
+            "main kon",
+            "main kaun"
+        ]
+        
+        # Check for matches
+        for question in user_name_questions:
+            if question in message_lower:
+                return True
+                
+        return False
+
+    def is_asking_bot_name(self, message: str) -> bool:
+        """Check if message is asking for BOT's name"""
+        if not message:
+            return False
+        
+        message_lower = message.lower().strip()
+        
+        # Specific patterns that ask for BOT's name
+        bot_name_questions = [
             "tumhara naam kya hai",
             "tumhara name kya hai", 
             "tumhara nam kya hai",
@@ -714,24 +762,27 @@ Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real 
             "tumhara nam",
             "aapka naam",
             "aapka name", 
-            "aapka nam"
+            "aapka nam",
+            "tu kaun hai",
+            "tu kon hai",
+            "aap kaun hain"
         ]
         
-        # Check for exact matches and partial matches
-        for question in name_questions:
+        # Check for matches
+        for question in bot_name_questions:
             if question in message_lower:
                 return True
-        
+                
         return False
 
     def get_direct_reply(self, message: str, user_name: str = "") -> str:
-        """Only very specific direct replies, let AI handle most cases"""
+        """Handle direct replies for name questions and basic greetings"""
         if not message:
             return None
         message_lower = message.lower().strip()
         
-        # Handle name questions specifically
-        if self.is_name_question(message):
+        # Handle USER's name questions specifically
+        if self.is_asking_user_name(message):
             if user_name:
                 clean_name = self.clean_name(user_name)
                 if clean_name:
@@ -741,6 +792,10 @@ Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real 
             else:
                 return random.choice(["Naam nahi pata", "Name nahi bataya", "Pata nahi"])
         
+        # Handle BOT's name questions specifically  
+        if self.is_asking_bot_name(message):
+            return "Shruti"
+        
         # Only handle very exact matches to avoid overriding AI
         exact_matches = {
             # Only basic greetings - exact matches only
@@ -748,12 +803,6 @@ Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real 
             "hello": random.choice(["Hi", "Hello", "Hey"]),
             "hey": random.choice(["Hi", "Hello", "Hey"]),
             "namaste": "Namaste",
-            
-            # Bot's own name questions
-            "naam kya hai": "Shruti",
-            "tumhara naam": "Shruti", 
-            "your name": "Shruti",
-            "name": "Shruti",
             
             # Very basic ones only
             "bye": random.choice(["Bye", "Chalo bye"]),
@@ -916,6 +965,7 @@ async def extract_and_save_user_name(message: Message):
             
             if user_name:
                 await save_user_name(user.id, user_name)
+                print(f"Saved user name: {user_name} -> {hybrid_bot.clean_name(user_name)}")  # Debug log
                 return hybrid_bot.clean_name(user_name)
     except Exception as e:
         print(f"Error extracting user name: {e}")
@@ -971,6 +1021,9 @@ async def hybrid_chatbot_response(client: Client, message: Message):
             user_name = await get_user_name(user_id)
             if not user_name:
                 user_name = await extract_and_save_user_name(message)
+            
+            # Debug: Print user info
+            print(f"User ID: {user_id}, Stored Name: {user_name}, Message: {message.text}")
             
             # Check if user sent media (sticker, photo, video, audio, animation, voice)
             if message.sticker or message.photo or message.video or message.audio or message.animation or message.voice:
