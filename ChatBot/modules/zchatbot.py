@@ -90,6 +90,69 @@ user_names_db = db.user_names.names
 # User conversation history database
 user_history_db = db.user_history.conversations
 
+# Database variables (same as second code)
+translator = GoogleTranslator()
+lang_db = db.ChatLangDb.LangCollection
+status_db = db.chatbot_status_db.status
+replies_cache = []
+blocklist = {}
+message_counts = {}
+
+# Database functions (from second code)
+async def load_replies_cache():
+    global replies_cache
+    replies_cache = await chatai.find().to_list(length=None)
+
+async def get_reply(word: str):
+    global replies_cache
+    if not replies_cache:
+        await load_replies_cache()
+        
+    relevant_replies = [reply for reply in replies_cache if reply['word'] == word]
+    if not relevant_replies:
+        relevant_replies = replies_cache
+    return random.choice(relevant_replies) if relevant_replies else None
+
+async def save_reply(original_message: Message, reply_message: Message):
+    global replies_cache
+    try:
+        reply_data = {
+            "word": original_message.text,
+            "text": None,
+            "check": "none",
+        }
+
+        if reply_message.sticker:
+            reply_data["text"] = reply_message.sticker.file_id
+            reply_data["check"] = "sticker"
+        elif reply_message.photo:
+            reply_data["text"] = reply_message.photo.file_id
+            reply_data["check"] = "photo"
+        elif reply_message.video:
+            reply_data["text"] = reply_message.video.file_id
+            reply_data["check"] = "video"
+        elif reply_message.audio:
+            reply_data["text"] = reply_message.audio.file_id
+            reply_data["check"] = "audio"
+        elif reply_message.animation:
+            reply_data["text"] = reply_message.animation.file_id
+            reply_data["check"] = "gif"
+        elif reply_message.voice:
+            reply_data["text"] = reply_message.voice.file_id
+            reply_data["check"] = "voice"
+        elif reply_message.text:
+            translated_text = reply_message.text
+            reply_data["text"] = translated_text
+            reply_data["check"] = "none"
+
+        is_chat = await chatai.find_one(reply_data)
+        if not is_chat:
+            await chatai.insert_one(reply_data)
+            replies_cache.append(reply_data)
+
+    except Exception as e:
+        print(f"Error in save_reply: {e}")
+
 class HybridChatBot:
     EMOJIS = ["😊", "😂", "❤️", "🔥", "😎", "😘", "💖", "🥰", "😉", "🌟", "👍", "✨", "😜", "🤗", "😇"]
 
@@ -613,6 +676,8 @@ Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real 
     def __init__(self):
         self.current_key_index = 0
         self.model = None
+        self.all_keys_exhausted = False
+        self.last_check_time = datetime.now()
         self.initialize_gemini()
         
     def initialize_gemini(self):
@@ -623,7 +688,7 @@ Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real 
                 self.model = genai.GenerativeModel('gemini-1.5-flash')
             except:
                 self.model = genai.GenerativeModel('gemini-1.0-pro')
-            print("Gemini model initialized successfully!")
+            print(f"Gemini model initialized with API key index: {self.current_key_index}")
         except Exception as e:
             print(f"Error with API key {self.current_key_index}: {str(e)}")
             self.rotate_api_key()
@@ -631,10 +696,44 @@ Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real 
     def rotate_api_key(self):
         """Rotate to next API key"""
         if len(GEMINI_API_KEYS) <= 1:
-            raise RuntimeError("No alternate API keys available")
+            self.all_keys_exhausted = True
+            print("All API keys exhausted, switching to database mode")
+            return
+        
+        old_index = self.current_key_index
         self.current_key_index = (self.current_key_index + 1) % len(GEMINI_API_KEYS)
+        
+        # If we've cycled through all keys, mark as exhausted
+        if self.current_key_index == 0 and old_index != 0:
+            self.all_keys_exhausted = True
+            print("All API keys cycled through, switching to database mode")
+            return
+            
         print(f"Rotating to API key index {self.current_key_index}")
-        self.initialize_gemini()
+        try:
+            self.initialize_gemini()
+        except:
+            # If initialization fails, try next key
+            if not self.all_keys_exhausted:
+                self.rotate_api_key()
+
+    async def check_api_limits_reset(self):
+        """Check if API limits might have reset (every hour)"""
+        current_time = datetime.now()
+        time_diff = (current_time - self.last_check_time).total_seconds()
+        
+        # Check every hour if all keys were exhausted
+        if self.all_keys_exhausted and time_diff > 3600:  # 1 hour
+            print("Checking if API limits have reset...")
+            self.all_keys_exhausted = False
+            self.current_key_index = 0
+            self.last_check_time = current_time
+            try:
+                self.initialize_gemini()
+                return True
+            except:
+                self.all_keys_exhausted = True
+        return False
 
     def clean_name(self, name: str) -> str:
         """Clean and normalize user name to remove stylized characters"""
@@ -672,15 +771,6 @@ Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real 
         cleaned = cleaned.title()
         
         return cleaned.strip()
-
-    def get_age(self) -> str:
-        """Calculate current age"""
-        birthday = datetime.date(2008, 3, 24)
-        today = datetime.date.today()
-        age = today.year - birthday.year - ((today.month, today.day) < (birthday.month, birthday.day))
-        months = (today.year - birthday.year) * 12 + today.month - birthday.month
-        months = months % 12
-        return f"{age} saal {months} mahine"
 
     def is_asking_user_name(self, message: str) -> bool:
         """Check if message is asking for USER's name (not bot's name)"""
@@ -874,6 +964,15 @@ Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real 
 
     async def get_ai_reply(self, message: str, user_id: int, user_name: str = "") -> str:
         """Get AI-generated reply using Gemini with conversation history"""
+        
+        # Check if API limits might have reset
+        await self.check_api_limits_reset()
+        
+        # If all APIs are exhausted, return None to use database fallback
+        if self.all_keys_exhausted:
+            print("All APIs exhausted, using database fallback")
+            return None
+        
         try:
             # Get conversation history
             user_context = await self.get_user_conversation_history(user_id)
@@ -920,12 +1019,16 @@ Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real 
             print(f"Gemini Error: {str(e)}")
             try:
                 self.rotate_api_key()
-                return await self.get_ai_reply(message, user_id, user_name)
+                # If not all keys exhausted, try again
+                if not self.all_keys_exhausted:
+                    return await self.get_ai_reply(message, user_id, user_name)
+                else:
+                    print("All APIs exhausted after rotation, using database fallback")
+                    return None
             except:
-                fallback = random.choice(["Samjh nahi aya", "Kya kaha?", "Phir se bolo", "Thoda ruko"])
-                # Save fallback response too
-                await self.save_conversation_history(user_id, message, fallback)
-                return fallback
+                print("Error during API rotation, using database fallback")
+                self.all_keys_exhausted = True
+                return None
 
     def get_random_sticker(self) -> str:
         """Get random sticker from predefined packs"""
@@ -933,57 +1036,6 @@ Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real 
 
 # Initialize hybrid chatbot
 hybrid_bot = HybridChatBot()
-
-# Database setup
-translator = GoogleTranslator()
-lang_db = db.ChatLangDb.LangCollection
-status_db = db.chatbot_status_db.status
-
-replies_cache = []
-
-async def load_replies_cache():
-    global replies_cache
-    replies_cache = await chatai.find().to_list(length=None)
-
-async def save_reply(original_message: Message, reply_message: Message):
-    global replies_cache
-    try:
-        reply_data = {
-            "word": original_message.text,
-            "text": None,
-            "check": "none",
-        }
-
-        if reply_message.sticker:
-            reply_data["text"] = reply_message.sticker.file_id
-            reply_data["check"] = "sticker"
-        elif reply_message.photo:
-            reply_data["text"] = reply_message.photo.file_id
-            reply_data["check"] = "photo"
-        elif reply_message.video:
-            reply_data["text"] = reply_message.video.file_id
-            reply_data["check"] = "video"
-        elif reply_message.audio:
-            reply_data["text"] = reply_message.audio.file_id
-            reply_data["check"] = "audio"
-        elif reply_message.animation:
-            reply_data["text"] = reply_message.animation.file_id
-            reply_data["check"] = "gif"
-        elif reply_message.voice:
-            reply_data["text"] = reply_message.voice.file_id
-            reply_data["check"] = "voice"
-        elif reply_message.text:
-            translated_text = reply_message.text
-            reply_data["text"] = translated_text
-            reply_data["check"] = "none"
-
-        is_chat = await chatai.find_one(reply_data)
-        if not is_chat:
-            await chatai.insert_one(reply_data)
-            replies_cache.append(reply_data)
-
-    except Exception as e:
-        print(f"Error in save_reply: {e}")
 
 async def get_chat_language(chat_id):
     chat_lang = await lang_db.find_one({"chat_id": chat_id})
@@ -1029,7 +1081,7 @@ async def extract_and_save_user_name(message: Message):
             
             if user_name:
                 await save_user_name(user.id, user_name)
-                print(f"Saved user name: {user_name} -> {hybrid_bot.clean_name(user_name)}")  # Debug log
+                print(f"Saved user name: {user_name} -> {hybrid_bot.clean_name(user_name)}")
                 return hybrid_bot.clean_name(user_name)
     except Exception as e:
         print(f"Error extracting user name: {e}")
@@ -1037,9 +1089,32 @@ async def extract_and_save_user_name(message: Message):
 
 @ChatBot.on_message(filters.incoming)
 async def hybrid_chatbot_response(client: Client, message: Message):
+    global blocklist, message_counts
     try:
         user_id = message.from_user.id
         chat_id = message.chat.id
+        current_time = datetime.now()
+        
+        # Anti-spam system (from second code)
+        blocklist = {uid: time for uid, time in blocklist.items() if time > current_time}
+
+        if user_id in blocklist:
+            return
+
+        if user_id not in message_counts:
+            message_counts[user_id] = {"count": 1, "last_time": current_time}
+        else:
+            time_diff = (current_time - message_counts[user_id]["last_time"]).total_seconds()
+            if time_diff <= 3:
+                message_counts[user_id]["count"] += 1
+            else:
+                message_counts[user_id] = {"count": 1, "last_time": current_time}
+            
+            if message_counts[user_id]["count"] >= 6:
+                blocklist[user_id] = current_time + timedelta(minutes=1)
+                message_counts.pop(user_id, None)
+                await message.reply_text(f"**Hey, {message.from_user.mention}**\n\n**You are blocked for 1 minute due to spam messages.**\n**Try again after 1 minute 🤣.**")
+                return
         
         # Check chat status
         chat_status = await status_db.find_one({"chat_id": chat_id})
@@ -1060,9 +1135,6 @@ async def hybrid_chatbot_response(client: Client, message: Message):
             user_name = await get_user_name(user_id)
             if not user_name:
                 user_name = await extract_and_save_user_name(message)
-            
-            # Debug: Print user info
-            print(f"User ID: {user_id}, Stored Name: {user_name}, Message: {message.text}")
             
             # Check if user sent media (sticker, photo, video, audio, animation, voice)
             if message.sticker or message.photo or message.video or message.audio or message.animation or message.voice:
@@ -1093,13 +1165,21 @@ async def hybrid_chatbot_response(client: Client, message: Message):
                     # Fallback to AI text if sticker fails
                     try:
                         ai_reply = await hybrid_bot.get_ai_reply("Nice", user_id, user_name)
-                        emoji = random.choice(hybrid_bot.EMOJIS)
-                        await message.reply_text(f"{ai_reply} {emoji}")
+                        if ai_reply:
+                            emoji = random.choice(hybrid_bot.EMOJIS)
+                            await message.reply_text(f"{ai_reply} {emoji}")
+                        else:
+                            # Use database fallback
+                            reply_data = await get_reply("Nice")
+                            if reply_data:
+                                await message.reply_text(reply_data["text"])
+                            else:
+                                await message.reply_text("🙄")
                     except:
                         await message.reply_text("🙄")
             
             elif message.text:
-                # For text messages, use AI response with history
+                # For text messages, try AI first, then database fallback
                 try:
                     # Check for direct replies first
                     direct_reply = hybrid_bot.get_direct_reply(message.text, user_name)
@@ -1108,8 +1188,39 @@ async def hybrid_chatbot_response(client: Client, message: Message):
                         # Save direct reply to history
                         await hybrid_bot.save_conversation_history(user_id, message.text, response_text)
                     else:
-                        # Use AI for all other text messages (includes history saving)
-                        response_text = await hybrid_bot.get_ai_reply(message.text, user_id, user_name)
+                        # Try AI first
+                        ai_reply = await hybrid_bot.get_ai_reply(message.text, user_id, user_name)
+                        
+                        if ai_reply:  # AI worked
+                            response_text = ai_reply
+                        else:  # AI failed, use database fallback
+                            print(f"Using database fallback for: {message.text}")
+                            reply_data = await get_reply(message.text)
+                            
+                            if reply_data:
+                                response_text = reply_data["text"]
+                                
+                                # Handle different media types from database
+                                if reply_data["check"] == "sticker":
+                                    await message.reply_sticker(reply_data["text"])
+                                    return
+                                elif reply_data["check"] == "photo":
+                                    await message.reply_photo(reply_data["text"])
+                                    return
+                                elif reply_data["check"] == "video":
+                                    await message.reply_video(reply_data["text"])
+                                    return
+                                elif reply_data["check"] == "audio":
+                                    await message.reply_audio(reply_data["text"])
+                                    return
+                                elif reply_data["check"] == "gif":
+                                    await message.reply_animation(reply_data["text"])
+                                    return
+                                elif reply_data["check"] == "voice":
+                                    await message.reply_voice(reply_data["text"])
+                                    return
+                            else:
+                                response_text = "**I don't understand. What are you saying?**"
 
                     # Handle language translation
                     chat_lang = await get_chat_language(chat_id)
@@ -1121,21 +1232,28 @@ async def hybrid_chatbot_response(client: Client, message: Message):
                         except:
                             pass
 
-                    # Send AI-generated text response with emoji
-                    emoji = random.choice(hybrid_bot.EMOJIS)
-                    final_text = f"{response_text} {emoji}"
-                    await message.reply_text(final_text)
+                    # Send response with emoji (if AI worked)
+                    if ai_reply:
+                        emoji = random.choice(hybrid_bot.EMOJIS)
+                        final_text = f"{response_text} {emoji}"
+                        await message.reply_text(final_text)
+                    else:
+                        # Database response - no emoji
+                        await message.reply_text(response_text)
                     
                 except Exception as e:
-                    print(f"Error in AI text response: {e}")
+                    print(f"Error in text response: {e}")
                     try:
-                        fallback_reply = await hybrid_bot.get_ai_reply("Hello", user_id, user_name)
-                        emoji = random.choice(hybrid_bot.EMOJIS)
-                        await message.reply_text(f"{fallback_reply} {emoji}")
+                        # Ultimate fallback - try database
+                        reply_data = await get_reply("hello")
+                        if reply_data:
+                            await message.reply_text(reply_data["text"])
+                        else:
+                            await message.reply_text("🙄")
                     except:
                         await message.reply_text("🙄")
 
-        # Save user replies for learning
+        # Save user replies for learning (from second code)
         if message.reply_to_message:
             await save_reply(message.reply_to_message, message)
 
