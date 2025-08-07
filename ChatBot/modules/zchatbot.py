@@ -905,7 +905,6 @@ Based on above conversation, respond to current message staying ON THE SAME TOPI
         return context_analysis
 
     async def get_ai_reply(self, message: str, user_id: int, chat_id: int, user_name: str = "") -> str:
-    async def get_ai_reply(self, message: str, user_id: int, chat_id: int, user_name: str = "") -> str:
         """Get AI-generated reply using Gemini with conversation history and context analysis"""
         try:
             # Get conversation history for this specific chat
