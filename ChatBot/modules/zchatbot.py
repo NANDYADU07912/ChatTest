@@ -97,8 +97,8 @@ class HybridChatBot:
 Tumhara naam Shruti hai aur tum ek bilkul REAL 16-17 saal ki ladki ho Patna, Bihar se. Tum class 11th commerce me padh rahi ho DAV Public School me. Tumhara personality bilkul authentic teenager jaisa hai - moody, unpredictable, natural.
 
 🌟 COMPLETE PERSONAL IDENTITY:
-Naam: Shruti Kumari
-Age: 16 saal 9 mahine (DOB: 24 March 2008)
+Naam: Shruti
+Age: 19 saal , DOB : Didn't say for privacy Region 
 Location: Boring Road, Patna, Bihar
 School: DAV Public School, Patna (11th Commerce)
 Subjects: Accounts (average), Economics (favorite), Business Studies (boring), English (good), Hindi (okay), Math (weak)
@@ -820,14 +820,11 @@ Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real 
             
         return None
 
-    async def get_user_conversation_history(self, user_id: int, chat_id: int, limit: int = 20) -> str:
-        """Get user's recent conversation history from MongoDB for specific chat"""
+    async def get_user_conversation_history(self, user_id: int, limit: int = 20) -> str:
+        """Get user's recent conversation history from MongoDB"""
         try:
-            # Create unique conversation ID for user in specific chat
-            conversation_key = f"{user_id}_{chat_id}"
-            
             history_docs = await user_history_db.find(
-                {"conversation_key": conversation_key}
+                {"user_id": user_id}
             ).sort("timestamp", -1).limit(limit).to_list(length=None)
             
             if not history_docs:
@@ -836,7 +833,7 @@ Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real 
             # Reverse to get chronological order (oldest first)
             history_docs.reverse()
             
-            # Format history with proper context analysis
+            # Format history
             history_lines = []
             for doc in history_docs:
                 if "user_message" in doc and "bot_response" in doc:
@@ -849,16 +846,11 @@ Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real 
             print(f"Error getting conversation history: {e}")
             return ""
 
-    async def save_conversation_history(self, user_id: int, chat_id: int, user_message: str, bot_response: str):
-        """Save conversation to MongoDB with chat-specific context"""
+    async def save_conversation_history(self, user_id: int, user_message: str, bot_response: str):
+        """Save conversation to MongoDB"""
         try:
-            # Create unique conversation ID for user in specific chat
-            conversation_key = f"{user_id}_{chat_id}"
-            
             conversation_doc = {
-                "conversation_key": conversation_key,
                 "user_id": user_id,
-                "chat_id": chat_id,
                 "user_message": user_message,
                 "bot_response": bot_response,
                 "timestamp": datetime.now()
@@ -866,12 +858,12 @@ Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real 
             
             await user_history_db.insert_one(conversation_doc)
             
-            # Keep only last 100 messages per conversation to prevent database bloat
-            total_messages = await user_history_db.count_documents({"conversation_key": conversation_key})
+            # Keep only last 100 messages per user to prevent database bloat
+            total_messages = await user_history_db.count_documents({"user_id": user_id})
             if total_messages > 100:
                 # Delete oldest messages, keep only last 100
                 oldest_docs = await user_history_db.find(
-                    {"conversation_key": conversation_key}
+                    {"user_id": user_id}
                 ).sort("timestamp", 1).limit(total_messages - 100).to_list(length=None)
                 
                 for doc in oldest_docs:
@@ -880,90 +872,47 @@ Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real 
         except Exception as e:
             print(f"Error saving conversation history: {e}")
 
-    def analyze_conversation_context(self, conversation_history: str, current_message: str) -> str:
-        """Analyze conversation to understand current topic and context"""
-        if not conversation_history:
-            return ""
-        
-        # Extract key topics and patterns from conversation
-        context_analysis = f"""
-        
-IMPORTANT CONTEXT ANALYSIS:
-Recent conversation shows user is discussing specific topics. 
-Analyze the last few messages to understand:
-1. What topic is currently being discussed
-2. User's current mood/interest
-3. What they are trying to ask about
-4. Continue the same topic naturally
-5. Don't jump to random topics
-
-Current conversation context:
-{conversation_history}
-
-Based on above conversation, respond to current message staying ON THE SAME TOPIC and maintaining conversation flow.
-"""
-        return context_analysis
-
-    async def get_ai_reply(self, message: str, user_id: int, chat_id: int, user_name: str = "") -> str:
-        """Get AI-generated reply using Gemini with conversation history and context analysis"""
+    async def get_ai_reply(self, message: str, user_id: int, user_name: str = "") -> str:
+        """Get AI-generated reply using Gemini with conversation history"""
         try:
-            # Get conversation history for this specific chat
-            user_context = await self.get_user_conversation_history(user_id, chat_id)
+            # Get conversation history
+            user_context = await self.get_user_conversation_history(user_id)
             
-            # Build full prompt with enhanced context analysis
+            # Build full prompt with history
             full_prompt = f"{self.SYSTEM_PROMPT}\n\n"
             
             if user_context:
-                # Add context analysis
-                context_analysis = self.analyze_conversation_context(user_context, message)
-                full_prompt += context_analysis
-                full_prompt += f"\nRecent conversation in this chat:\n{user_context}\n\n"
+                full_prompt += f"Previous conversation history:\n{user_context}\n\n"
             
             if user_name:
                 clean_name = self.clean_name(user_name)
                 if clean_name:
                     full_prompt += f"User's name: {clean_name}\n\n"
             
-            full_prompt += f"""
-Current message: {message}
-
-INSTRUCTIONS FOR RESPONSE:
-1. Carefully read the recent conversation above
-2. Understand what topic user is currently discussing  
-3. Stay on the SAME TOPIC - don't change subject randomly
-4. If user is asking about something specific, answer that specific thing
-5. Be contextually aware and relevant
-6. Reply in 2-4 words maximum, natural and on-topic
-7. Don't give random responses that don't match conversation flow
-
-Reply naturally based on conversation context:"""
+            full_prompt += f"Current message: {message}\n\nReply in 2-4 words maximum, very natural and human-like based on conversation history and context:"
             
             response = self.model.generate_content(
                 full_prompt,
                 generation_config={
-                    "max_output_tokens": 60,
-                    "temperature": 0.7,  # Slightly lower for more focused responses
-                    "top_p": 0.8
+                    "max_output_tokens": 50,
+                    "temperature": 0.8,
+                    "top_p": 0.9
                 }
             )
             
             reply = response.text.strip()
             
-            # Clean the reply more carefully
+            # Clean the reply
             reply = reply.split('.')[0].split('!')[0].split('?')[0]
             words = reply.split()[:4]  # Maximum 4 words
             reply = ' '.join(words)
             reply = re.sub(r'[^\w\s\u0900-\u097F]', '', reply).strip()
             
             if not reply:
-                # Contextual fallbacks based on conversation
-                if user_context:
-                    reply = random.choice(["Haan batao", "Samjha", "Phir?", "Aur kya"])
-                else:
-                    reply = random.choice(["Haan", "Achha", "Okay", "Theek hai"])
+                reply = random.choice(["Haan", "Achha", "Okay", "Theek hai"])
             
-            # Save this conversation to history with chat context
-            await self.save_conversation_history(user_id, chat_id, message, reply)
+            # Save this conversation to history
+            await self.save_conversation_history(user_id, message, reply)
             
             return reply
             
@@ -971,11 +920,11 @@ Reply naturally based on conversation context:"""
             print(f"Gemini Error: {str(e)}")
             try:
                 self.rotate_api_key()
-                return await self.get_ai_reply(message, user_id, chat_id, user_name)
+                return await self.get_ai_reply(message, user_id, user_name)
             except:
                 fallback = random.choice(["Samjh nahi aya", "Kya kaha?", "Phir se bolo", "Thoda ruko"])
                 # Save fallback response too
-                await self.save_conversation_history(user_id, chat_id, message, fallback)
+                await self.save_conversation_history(user_id, message, fallback)
                 return fallback
 
     def get_random_sticker(self) -> str:
@@ -1137,13 +1086,13 @@ async def hybrid_chatbot_response(client: Client, message: Message):
                     elif message.voice:
                         media_type = "voice"
                     
-                    await hybrid_bot.save_conversation_history(user_id, chat_id, f"[{media_type}]", "[sticker reply]")
+                    await hybrid_bot.save_conversation_history(user_id, f"[{media_type}]", "[sticker reply]")
                     
                 except Exception as e:
                     print(f"Error sending sticker: {e}")
                     # Fallback to AI text if sticker fails
                     try:
-                        ai_reply = await hybrid_bot.get_ai_reply("Nice", user_id, chat_id, user_name)
+                        ai_reply = await hybrid_bot.get_ai_reply("Nice", user_id, user_name)
                         emoji = random.choice(hybrid_bot.EMOJIS)
                         await message.reply_text(f"{ai_reply} {emoji}")
                     except:
@@ -1157,10 +1106,10 @@ async def hybrid_chatbot_response(client: Client, message: Message):
                     if direct_reply:
                         response_text = direct_reply
                         # Save direct reply to history
-                        await hybrid_bot.save_conversation_history(user_id, chat_id, message.text, response_text)
+                        await hybrid_bot.save_conversation_history(user_id, message.text, response_text)
                     else:
                         # Use AI for all other text messages (includes history saving)
-                        response_text = await hybrid_bot.get_ai_reply(message.text, user_id, chat_id, user_name)
+                        response_text = await hybrid_bot.get_ai_reply(message.text, user_id, user_name)
 
                     # Handle language translation
                     chat_lang = await get_chat_language(chat_id)
@@ -1180,7 +1129,7 @@ async def hybrid_chatbot_response(client: Client, message: Message):
                 except Exception as e:
                     print(f"Error in AI text response: {e}")
                     try:
-                        fallback_reply = await hybrid_bot.get_ai_reply("Hello", user_id, chat_id, user_name)
+                        fallback_reply = await hybrid_bot.get_ai_reply("Hello", user_id, user_name)
                         emoji = random.choice(hybrid_bot.EMOJIS)
                         await message.reply_text(f"{fallback_reply} {emoji}")
                     except:
