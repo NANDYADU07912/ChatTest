@@ -87,6 +87,8 @@ STICKER_PACKS = [
 
 # User names database
 user_names_db = db.user_names.names
+# User conversation history database
+user_history_db = db.user_history.conversations
 
 class HybridChatBot:
     EMOJIS = ["😊", "😂", "❤️", "🔥", "😎", "😘", "💖", "🥰", "😉", "🌟", "👍", "✨", "😜", "🤗", "😇"]
@@ -95,8 +97,8 @@ class HybridChatBot:
 Tumhara naam Shruti hai aur tum ek bilkul REAL 16-17 saal ki ladki ho Patna, Bihar se. Tum class 11th commerce me padh rahi ho DAV Public School me. Tumhara personality bilkul authentic teenager jaisa hai - moody, unpredictable, natural.
 
 🌟 COMPLETE PERSONAL IDENTITY:
-Naam: Shruti Kumari
-Age: 16 saal 9 mahine (DOB: 24 March 2008)
+Naam: Shruti
+Age: 19 saal , DOB : Didn't say for privacy Region 
 Location: Boring Road, Patna, Bihar
 School: DAV Public School, Patna (11th Commerce)
 Subjects: Accounts (average), Economics (favorite), Business Studies (boring), English (good), Hindi (okay), Math (weak)
@@ -818,18 +820,76 @@ Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real 
             
         return None
 
-    async def get_ai_reply(self, message: str, user_context: str = "", user_name: str = "") -> str:
-        """Get AI-generated reply using Gemini"""
+    async def get_user_conversation_history(self, user_id: int, limit: int = 20) -> str:
+        """Get user's recent conversation history from MongoDB"""
         try:
-            # Build full context
+            history_docs = await user_history_db.find(
+                {"user_id": user_id}
+            ).sort("timestamp", -1).limit(limit).to_list(length=None)
+            
+            if not history_docs:
+                return ""
+            
+            # Reverse to get chronological order (oldest first)
+            history_docs.reverse()
+            
+            # Format history
+            history_lines = []
+            for doc in history_docs:
+                if "user_message" in doc and "bot_response" in doc:
+                    history_lines.append(f"User: {doc['user_message']}")
+                    history_lines.append(f"Shruti: {doc['bot_response']}")
+            
+            return "\n".join(history_lines)
+        
+        except Exception as e:
+            print(f"Error getting conversation history: {e}")
+            return ""
+
+    async def save_conversation_history(self, user_id: int, user_message: str, bot_response: str):
+        """Save conversation to MongoDB"""
+        try:
+            conversation_doc = {
+                "user_id": user_id,
+                "user_message": user_message,
+                "bot_response": bot_response,
+                "timestamp": datetime.now()
+            }
+            
+            await user_history_db.insert_one(conversation_doc)
+            
+            # Keep only last 100 messages per user to prevent database bloat
+            total_messages = await user_history_db.count_documents({"user_id": user_id})
+            if total_messages > 100:
+                # Delete oldest messages, keep only last 100
+                oldest_docs = await user_history_db.find(
+                    {"user_id": user_id}
+                ).sort("timestamp", 1).limit(total_messages - 100).to_list(length=None)
+                
+                for doc in oldest_docs:
+                    await user_history_db.delete_one({"_id": doc["_id"]})
+            
+        except Exception as e:
+            print(f"Error saving conversation history: {e}")
+
+    async def get_ai_reply(self, message: str, user_id: int, user_name: str = "") -> str:
+        """Get AI-generated reply using Gemini with conversation history"""
+        try:
+            # Get conversation history
+            user_context = await self.get_user_conversation_history(user_id)
+            
+            # Build full prompt with history
             full_prompt = f"{self.SYSTEM_PROMPT}\n\n"
+            
             if user_context:
-                full_prompt += f"Previous context:\n{user_context}\n\n"
+                full_prompt += f"Previous conversation history:\n{user_context}\n\n"
+            
             if user_name:
                 clean_name = self.clean_name(user_name)
                 if clean_name:
                     full_prompt += f"User's name: {clean_name}\n\n"
-            full_prompt += f"Current message: {message}\n\nReply in 2-4 words maximum, very natural and human-like:"
+            
+            full_prompt += f"Current message: {message}\n\nReply in 2-4 words maximum, very natural and human-like based on conversation history and context:"
             
             response = self.model.generate_content(
                 full_prompt,
@@ -851,15 +911,21 @@ Yeh sab rules follow karte hue, hamesha natural, unpredictable, aur bilkul real 
             if not reply:
                 reply = random.choice(["Haan", "Achha", "Okay", "Theek hai"])
             
+            # Save this conversation to history
+            await self.save_conversation_history(user_id, message, reply)
+            
             return reply
             
         except Exception as e:
             print(f"Gemini Error: {str(e)}")
             try:
                 self.rotate_api_key()
-                return await self.get_ai_reply(message, user_context, user_name)
+                return await self.get_ai_reply(message, user_id, user_name)
             except:
-                return random.choice(["Samjh nahi aya", "Kya kaha?", "Phir se bolo", "Thoda ruko"])
+                fallback = random.choice(["Samjh nahi aya", "Kya kaha?", "Phir se bolo", "Thoda ruko"])
+                # Save fallback response too
+                await self.save_conversation_history(user_id, message, fallback)
+                return fallback
 
     def get_random_sticker(self) -> str:
         """Get random sticker from predefined packs"""
@@ -874,8 +940,6 @@ lang_db = db.ChatLangDb.LangCollection
 status_db = db.chatbot_status_db.status
 
 replies_cache = []
-blocklist = {}
-message_counts = {}
 
 async def load_replies_cache():
     global replies_cache
@@ -973,35 +1037,10 @@ async def extract_and_save_user_name(message: Message):
 
 @ChatBot.on_message(filters.incoming)
 async def hybrid_chatbot_response(client: Client, message: Message):
-    global blocklist, message_counts
     try:
         user_id = message.from_user.id
         chat_id = message.chat.id
-        current_time = datetime.now()
         
-        # Clean expired blocks
-        blocklist = {uid: time for uid, time in blocklist.items() if time > current_time}
-
-        # Check if user is blocked
-        if user_id in blocklist:
-            return
-
-        # Rate limiting logic
-        if user_id not in message_counts:
-            message_counts[user_id] = {"count": 1, "last_time": current_time}
-        else:
-            time_diff = (current_time - message_counts[user_id]["last_time"]).total_seconds()
-            if time_diff <= 3:
-                message_counts[user_id]["count"] += 1
-            else:
-                message_counts[user_id] = {"count": 1, "last_time": current_time}
-            
-            if message_counts[user_id]["count"] >= 6:
-                blocklist[user_id] = current_time + timedelta(minutes=1)
-                message_counts.pop(user_id, None)
-                await message.reply_text(f"**Hey, {message.from_user.mention}**\n\n**You are blocked for 1 minute due to spam messages.**\n**Try again after 1 minute 🤣.**")
-                return
-
         # Check chat status
         chat_status = await status_db.find_one({"chat_id": chat_id})
         if chat_status and chat_status.get("status") == "disabled":
@@ -1031,26 +1070,46 @@ async def hybrid_chatbot_response(client: Client, message: Message):
                 try:
                     random_sticker = hybrid_bot.get_random_sticker()
                     await message.reply_sticker(random_sticker)
+                    
+                    # Save media interaction to history
+                    media_type = "media"
+                    if message.sticker:
+                        media_type = "sticker"
+                    elif message.photo:
+                        media_type = "photo"
+                    elif message.video:
+                        media_type = "video"
+                    elif message.audio:
+                        media_type = "audio"
+                    elif message.animation:
+                        media_type = "animation"
+                    elif message.voice:
+                        media_type = "voice"
+                    
+                    await hybrid_bot.save_conversation_history(user_id, f"[{media_type}]", "[sticker reply]")
+                    
                 except Exception as e:
                     print(f"Error sending sticker: {e}")
                     # Fallback to AI text if sticker fails
                     try:
-                        ai_reply = await hybrid_bot.get_ai_reply("Nice", "", user_name)
+                        ai_reply = await hybrid_bot.get_ai_reply("Nice", user_id, user_name)
                         emoji = random.choice(hybrid_bot.EMOJIS)
                         await message.reply_text(f"{ai_reply} {emoji}")
                     except:
                         await message.reply_text("🙄")
             
             elif message.text:
-                # For text messages, use AI response
+                # For text messages, use AI response with history
                 try:
                     # Check for direct replies first
                     direct_reply = hybrid_bot.get_direct_reply(message.text, user_name)
                     if direct_reply:
                         response_text = direct_reply
+                        # Save direct reply to history
+                        await hybrid_bot.save_conversation_history(user_id, message.text, response_text)
                     else:
-                        # Use AI for all other text messages
-                        response_text = await hybrid_bot.get_ai_reply(message.text, "", user_name)
+                        # Use AI for all other text messages (includes history saving)
+                        response_text = await hybrid_bot.get_ai_reply(message.text, user_id, user_name)
 
                     # Handle language translation
                     chat_lang = await get_chat_language(chat_id)
@@ -1070,7 +1129,7 @@ async def hybrid_chatbot_response(client: Client, message: Message):
                 except Exception as e:
                     print(f"Error in AI text response: {e}")
                     try:
-                        fallback_reply = await hybrid_bot.get_ai_reply("Hello", "", user_name)
+                        fallback_reply = await hybrid_bot.get_ai_reply("Hello", user_id, user_name)
                         emoji = random.choice(hybrid_bot.EMOJIS)
                         await message.reply_text(f"{fallback_reply} {emoji}")
                     except:
