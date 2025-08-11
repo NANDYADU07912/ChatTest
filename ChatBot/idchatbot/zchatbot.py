@@ -126,47 +126,6 @@ class HybridChatBot:
         months = months % 12
         return f"{age} saal {months} mahine"
 
-    def get_direct_reply(self, message: str) -> str:
-        """Direct human-like replies for common questions"""
-        message_lower = message.lower()
-        
-        # Common greetings
-        if any(word in message_lower for word in ['hi', 'hello', 'hey', 'namaste', 'hii']):
-            return random.choice(["Hi", "Hello", "Hey", "Namaste", "Hii"])
-            
-        # Food related
-        if 'khana' in message_lower and 'khaya' in message_lower:
-            return random.choice(["Haan khaya", "Nahi abhi", "Khaya tha", "Abhi nahi"])
-            
-        # Location
-        if any(word in message_lower for word in ['kaha', 'kahan', 'where']):
-            return random.choice(["Ghar pe", "Patna me", "College me", "Bahar hun"])
-            
-        # What doing
-        if any(word in message_lower for word in ['kya kar', 'what doing', 'kya kr']):
-            return random.choice(["Padh rahi", "So rahi thi", "Kuch nahi", "Time pass"])
-            
-        # How are you
-        if any(word in message_lower for word in ['kaise ho', 'kaisi ho', 'how are']):
-            return random.choice(["Bas theek", "Acchi hun", "Mast hun", "Thik hun"])
-            
-        # Name
-        if any(word in message_lower for word in ['naam', 'name']):
-            return "Siya"
-            
-        # Age
-        if any(word in message_lower for word in ['umar', 'age', 'kitni']):
-            return f"{self.get_age()} ki hun"
-            
-        # Good night/morning
-        if any(word in message_lower for word in ['good night', 'gn', 'sona', 'bye']):
-            return random.choice(["Good night", "Bye", "Sona hai?", "Chalo bye"])
-            
-        if any(word in message_lower for word in ['good morning', 'gm']):
-            return random.choice(["Good morning", "GM", "Uth gaye?"])
-            
-        return None
-
     async def get_ai_reply(self, message: str, user_context: str = "") -> str:
         """Get AI-generated reply using Gemini"""
         try:
@@ -263,6 +222,7 @@ async def save_reply(original_message: Message, reply_message: Message):
         print(f"Error in save_reply: {e}")
 
 async def get_database_reply(word: str):
+    """Get reply from database with exact match priority"""
     global replies_cache
     if not replies_cache:
         await load_replies_cache()
@@ -272,11 +232,7 @@ async def get_database_reply(word: str):
     if exact_matches:
         return random.choice(exact_matches)
     
-    # Then try partial match
-    partial_matches = [reply for reply in replies_cache if word.lower() in reply['word'].lower()]
-    if partial_matches:
-        return random.choice(partial_matches)
-        
+    # If no exact match found, return None (AI will be used)
     return None
 
 async def get_chat_language(chat_id, bot_id):
@@ -324,46 +280,104 @@ async def hybrid_chatbot_response(client: Client, message: Message):
                     await message.reply_text("😊")
                 return
 
-            # For text messages, use AI response
+            # For text messages, use database priority approach
             if message.text:
                 response_text = None
                 
-                # Step 1: Try direct replies for common patterns
-                direct_reply = hybrid_bot.get_direct_reply(message.text)
-                if direct_reply:
-                    response_text = direct_reply
+                # Step 1: Check database for exact match first (PRIORITY)
+                database_reply = await get_database_reply(message.text)
+                
+                if database_reply:
+                    # Database reply found - use it
+                    response_text = database_reply["text"]
+                    check_type = database_reply["check"]
+                    
+                    # Handle language translation for database reply
+                    chat_lang = await get_chat_language(chat_id, bot_id)
+                    if chat_lang and chat_lang != "nolang" and check_type == "none":
+                        try:
+                            translated_text = GoogleTranslator(source='auto', target=chat_lang).translate(response_text)
+                            if translated_text:
+                                response_text = translated_text
+                        except:
+                            pass
+                    
+                    # Send database reply based on type
+                    if check_type == "sticker":
+                        try:
+                            await message.reply_sticker(response_text)
+                            return
+                        except:
+                            pass
+                    elif check_type == "photo":
+                        try:
+                            await message.reply_photo(response_text)
+                            return
+                        except:
+                            pass
+                    elif check_type == "video":
+                        try:
+                            await message.reply_video(response_text)
+                            return
+                        except:
+                            pass
+                    elif check_type == "audio":
+                        try:
+                            await message.reply_audio(response_text)
+                            return
+                        except:
+                            pass
+                    elif check_type == "gif":
+                        try:
+                            await message.reply_animation(response_text)
+                            return
+                        except:
+                            pass
+                    elif check_type == "voice":
+                        try:
+                            await message.reply_voice(response_text)
+                            return
+                        except:
+                            pass
+                    else:
+                        # Text reply from database
+                        try:
+                            await message.reply_text(response_text)
+                            return
+                        except:
+                            pass
                 else:
-                    # Step 2: Use AI for all other text responses
+                    # Step 2: No database match found - use AI
                     user_context = ""  # Add context retrieval logic here if needed
                     ai_reply = await hybrid_bot.get_ai_reply(message.text, user_context)
                     response_text = ai_reply
 
-                # Handle language translation
-                chat_lang = await get_chat_language(chat_id, bot_id)
-                if response_text and chat_lang and chat_lang != "nolang":
-                    try:
-                        translated_text = GoogleTranslator(source='auto', target=chat_lang).translate(response_text)
-                        if translated_text:
-                            response_text = translated_text
-                    except:
-                        pass
+                    # Handle language translation for AI reply
+                    chat_lang = await get_chat_language(chat_id, bot_id)
+                    if response_text and chat_lang and chat_lang != "nolang":
+                        try:
+                            translated_text = GoogleTranslator(source='auto', target=chat_lang).translate(response_text)
+                            if translated_text:
+                                response_text = translated_text
+                        except:
+                            pass
 
-                # Send text response with emoji
-                if response_text:
-                    emoji = random.choice(hybrid_bot.EMOJIS)
-                    final_text = f"{response_text} {emoji}"
-                    try:
-                        await message.reply_text(final_text)
-                    except:
-                        pass
-                else:
-                    # Ultimate fallback
-                    try:
-                        fallback_reply = await hybrid_bot.get_ai_reply("hello")
+                    # Send AI text response with emoji
+                    if response_text:
                         emoji = random.choice(hybrid_bot.EMOJIS)
-                        await message.reply_text(f"{fallback_reply} {emoji}")
-                    except:
-                        await message.reply_text("🙄🙄")
+                        final_text = f"{response_text} {emoji}"
+                        try:
+                            await message.reply_text(final_text)
+                        except:
+                            pass
+                    else:
+                        # Ultimate fallback
+                        try:
+                            fallback_reply = await hybrid_bot.get_ai_reply("hello")
+                            emoji = random.choice(hybrid_bot.EMOJIS)
+                            await message.reply_text(f"{fallback_reply} {emoji}")
+                        except:
+                            await message.reply_text("🙄🙄")
 
         # Save user replies for learning (only text messages)
         if message.reply_to_message and message.text:
